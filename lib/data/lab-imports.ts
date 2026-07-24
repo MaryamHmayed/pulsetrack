@@ -1,0 +1,157 @@
+import "server-only";
+
+import { requireClinician } from "@/lib/auth/session";
+import { db } from "@/lib/db";
+import {
+  createLabResultKey,
+  LabCsvFileError,
+  parseAndValidateLabCsv,
+  type LabCsvValidationReport,
+} from "@/lib/labs/csv";
+import {
+  MAX_LAB_CSV_BYTES,
+  sanitizeLabImportFileName,
+} from "@/lib/labs/upload";
+
+export type LabImportResult = LabCsvValidationReport & {
+  importId: string;
+  importedCount: number;
+};
+
+export async function importLabCsv(
+  fileName: string,
+  content: string,
+): Promise<LabImportResult> {
+  const clinician = await requireClinician();
+
+  if (Buffer.byteLength(content, "utf8") > MAX_LAB_CSV_BYTES) {
+    throw new LabCsvFileError("The CSV file must be 1 MB or smaller.");
+  }
+
+  const patients = await db.patient.findMany({
+    where: { clinicianId: clinician.id },
+    select: { id: true, mrn: true },
+  });
+  const patientIdByMrn = new Map(
+    patients.map((patient) => [patient.mrn.toUpperCase(), patient.id]),
+  );
+
+  const existingResults = await db.labResult.findMany({
+    where: {
+      patient: { clinicianId: clinician.id },
+    },
+    select: {
+      collectedDate: true,
+      testCode: true,
+      patient: { select: { mrn: true } },
+    },
+  });
+  const existingResultKeys = new Set(
+    existingResults.map((result) =>
+      createLabResultKey(
+        result.patient.mrn,
+        result.collectedDate.toISOString().slice(0, 10),
+        result.testCode,
+      ),
+    ),
+  );
+
+  const validation = parseAndValidateLabCsv(content, {
+    knownMrns: new Set(patientIdByMrn.keys()),
+    existingResultKeys,
+  });
+  const safeFileName = sanitizeLabImportFileName(fileName);
+
+  return db.$transaction(
+    async (transaction) => {
+      const labImport = await transaction.labImport.create({
+        data: {
+          clinicianId: clinician.id,
+          fileName: safeFileName,
+          totalRows: validation.totalRows,
+          acceptedCount: 0,
+          rejectedCount: validation.totalRows,
+        },
+        select: { id: true },
+      });
+
+      if (validation.accepted.length > 0) {
+        await transaction.labResult.createMany({
+          data: validation.accepted.map((row) => ({
+            patientId: patientIdByMrn.get(row.mrn)!,
+            importId: labImport.id,
+            collectedDate: row.collectedDate,
+            testCode: row.testCode,
+            testName: row.testName,
+            value: row.value,
+            unit: row.unit,
+            refLow: row.refLow,
+            refHigh: row.refHigh,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      const insertedResults = await transaction.labResult.findMany({
+        where: { importId: labImport.id },
+        select: {
+          collectedDate: true,
+          testCode: true,
+          patient: { select: { mrn: true } },
+        },
+      });
+      const insertedKeys = new Set(
+        insertedResults.map((result) =>
+          createLabResultKey(
+            result.patient.mrn,
+            result.collectedDate.toISOString().slice(0, 10),
+            result.testCode,
+          ),
+        ),
+      );
+      const accepted = validation.accepted.filter((row) =>
+        insertedKeys.has(row.deduplicationKey),
+      );
+      const concurrentDuplicates = validation.accepted
+        .filter((row) => !insertedKeys.has(row.deduplicationKey))
+        .map((row) => ({
+          rowNumber: row.rowNumber,
+          values: {
+            mrn: row.mrn,
+            collected_date: row.collectedDateText,
+            test_code: row.testCode,
+            test_name: row.testName,
+            value: row.value,
+            unit: row.unit,
+            ref_low: row.refLow,
+            ref_high: row.refHigh,
+          },
+          errors: ["Duplicate lab result detected while importing."],
+        }));
+      const rejected = [...validation.rejected, ...concurrentDuplicates].sort(
+        (first, second) => first.rowNumber - second.rowNumber,
+      );
+
+      await transaction.labImport.update({
+        where: { id: labImport.id },
+        data: {
+          acceptedCount: accepted.length,
+          rejectedCount: rejected.length,
+        },
+      });
+
+      return {
+        importId: labImport.id,
+        totalRows: validation.totalRows,
+        importedCount: accepted.length,
+        accepted,
+        rejected,
+      };
+    },
+    {
+      isolationLevel: "Serializable",
+      maxWait: 5_000,
+      timeout: 10_000,
+    },
+  );
+}

@@ -1,6 +1,9 @@
 import "server-only";
 
-export type AssessmentDeliveryMode = "EMAIL" | "PREVIEW";
+import {
+  resolveAssessmentDeliveryMode,
+  type AssessmentDeliveryMode,
+} from "@/lib/email/delivery-mode";
 
 type AssessmentEmailInput = {
   assessmentId: string;
@@ -36,43 +39,44 @@ function escapeHtml(value: string) {
 }
 
 export function getAssessmentDeliveryMode(): AssessmentDeliveryMode {
-  const configured = process.env.EMAIL_DELIVERY_MODE?.trim().toLowerCase();
-
-  if (!configured) {
-    return process.env.NODE_ENV === "production" ? "EMAIL" : "PREVIEW";
+  try {
+    return resolveAssessmentDeliveryMode(
+      process.env.EMAIL_DELIVERY_MODE,
+      process.env.NODE_ENV === "production",
+    );
+  } catch (error) {
+    throw new EmailDeliveryError(
+      error instanceof Error
+        ? error.message
+        : "Email delivery mode is not configured correctly.",
+    );
   }
-
-  if (configured === "preview") {
-    return "PREVIEW";
-  }
-
-  if (configured === "resend" || configured === "email") {
-    return "EMAIL";
-  }
-
-  throw new Error(
-    "EMAIL_DELIVERY_MODE must be either 'preview' or 'resend'.",
-  );
 }
 
 export function getApplicationUrl() {
   const configured = process.env.APP_URL?.trim();
 
   if (configured) {
-    const url = new URL(configured);
+    let url: URL;
+
+    try {
+      url = new URL(configured);
+    } catch {
+      throw new EmailDeliveryError("APP_URL must be a valid absolute URL.");
+    }
 
     if (
       process.env.NODE_ENV === "production" &&
       url.protocol !== "https:"
     ) {
-      throw new Error("APP_URL must use HTTPS in production.");
+      throw new EmailDeliveryError("APP_URL must use HTTPS in production.");
     }
 
     return url.origin;
   }
 
   if (process.env.NODE_ENV === "production") {
-    throw new Error("APP_URL is required in production.");
+    throw new EmailDeliveryError("APP_URL is required in production.");
   }
 
   return "http://localhost:3000";
@@ -107,6 +111,7 @@ export async function sendAssessmentEmail(
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         "Idempotency-Key": `assessment/${input.assessmentId}`,
+        "User-Agent": "PulseTrack/1.0",
       },
       body: JSON.stringify({
         from,
