@@ -47,6 +47,7 @@ yarn-error.log*
 # Local AI assistant configuration
 /.agents/
 /.windsurf/
+/.claude/
 /skills-lock.json
 
 # Operating system files
