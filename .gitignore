@@ -46,7 +46,6 @@ yarn-error.log*
 
 # Local AI assistant configuration
 /.agents/
-/.claude/
 /.windsurf/
 /skills-lock.json
 
