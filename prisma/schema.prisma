@@ -25,6 +25,11 @@ enum AssessmentStatus {
   EXPIRED
 }
 
+enum AssessmentDeliveryMode {
+  EMAIL
+  PREVIEW
+}
+
 enum RiskBand {
   LOW
   MODERATE
@@ -77,17 +82,21 @@ model Session {
 }
 
 model Assessment {
-  id          String           @id @default(cuid())
-  patientId   String
-  tokenHash   String           @unique
-  status      AssessmentStatus @default(SENT)
-  sentAt      DateTime         @default(now())
-  expiresAt   DateTime
-  completedAt DateTime?
-  responses   Json?
-  score       Int?
-  riskBand    RiskBand?
-  patient     Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  id                   String                 @id @default(cuid())
+  patientId            String
+  questionnaireId      String                 @default("dsma-8")
+  questionnaireVersion String                 @default("1.0")
+  tokenHash            String                 @unique
+  status               AssessmentStatus       @default(SENT)
+  deliveryMode         AssessmentDeliveryMode @default(EMAIL)
+  emailProviderId      String?
+  sentAt               DateTime               @default(now())
+  expiresAt            DateTime
+  completedAt          DateTime?
+  responses            Json?
+  score                Int?
+  riskBand             RiskBand?
+  patient              Patient                @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([patientId, sentAt])
   @@index([status, expiresAt])
