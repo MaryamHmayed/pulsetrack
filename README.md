@@ -9,7 +9,7 @@ This repository contains the completed **Tier 1** scope of the Capadev
 Software Engineer Challenge.
 
 - Repository: [github.com/MaryamHmayed/pulsetrack](https://github.com/MaryamHmayed/pulsetrack)
-- Live application: **Add the Vercel URL before submission**
+- Live application: [pulsetrack-seven.vercel.app](https://pulsetrack-seven.vercel.app)
 
 ## Test clinician
 
