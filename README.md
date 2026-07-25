@@ -391,7 +391,8 @@ consent handling, backups, and an approved data-governance process.
 3. Add `DATABASE_URL`, `EMAIL_DELIVERY_MODE=resend`, `APP_URL`,
    `RESEND_API_KEY`, and `EMAIL_FROM` to the Vercel Production environment.
 4. Set `APP_URL` to the final `https://...vercel.app` origin.
-5. Use `npx prisma generate && npm run build` as the Vercel build command.
+5. Keep Vercel's detected `npm run build` build command. The `postinstall`
+   script generates Prisma Client during dependency installation.
 6. Deploy, run `npm run seed` once against the production database, and verify
    login, email delivery, CSV import, and responsive layouts.
 
