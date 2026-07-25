@@ -5,6 +5,7 @@ import { getAssessmentHistory } from "@/lib/data/assessments";
 import { getPatientLabResults } from "@/lib/data/lab-results";
 import { DeletePatientButton } from "../delete-patient-button";
 import { SendAssessmentButton } from "../send-assessment-button";
+import { LabTrendChart } from "./lab-trend-chart";
 
 function formatDate(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -73,6 +74,12 @@ export default async function PatientPage({
     getAssessmentHistory(patient.id),
     getPatientLabResults(patient.id),
   ]);
+  const glucoseResults = labResults.filter(
+    (result) => result.testCode === "GLU-F",
+  );
+  const hba1cResults = labResults.filter(
+    (result) => result.testCode === "HBA1C",
+  );
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -137,6 +144,28 @@ export default async function PatientPage({
             </dd>
           </div>
         </dl>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div>
+          <h2 className="text-lg font-bold">Lab trends</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Values are plotted by collection date. Shaded bands use the
+            reference range from each test’s latest result.
+          </p>
+        </div>
+        <div className="mt-6 grid gap-5 xl:grid-cols-2">
+          <LabTrendChart
+            idPrefix="fasting-glucose"
+            results={glucoseResults}
+            title="Fasting glucose"
+          />
+          <LabTrendChart
+            idPrefix="hba1c"
+            results={hba1cResults}
+            title="HbA1c"
+          />
+        </div>
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
