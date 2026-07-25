@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Icon } from "@/app/ui/icons";
 import { getClinicDashboardData } from "@/lib/data/dashboard";
 import { parseDashboardDateRange } from "@/lib/dashboard/date-range";
+import { formatDateTimeUtc } from "@/lib/format/date";
 
 const riskBandDisplay = {
   LOW: {
@@ -53,23 +55,24 @@ export default async function DashboardPage({
     .join(", ");
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+    <main className="app-page">
+      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">
+          <p className="app-eyebrow">
             Clinic overview
           </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
+          <h1 className="app-title mt-2">
             Clinical dashboard
           </h1>
-          <p className="mt-2 text-slate-600">
+          <p className="app-subtitle mt-2">
             Monitor your patient population and recent clinical activity.
           </p>
         </div>
         <Link
-          className="inline-flex items-center justify-center rounded-xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-teal-800"
+          className="button-primary"
           href="/patients/new"
         >
+          <Icon className="h-[18px] w-[18px]" name="plus" />
           Add patient
         </Link>
       </div>
@@ -78,59 +81,79 @@ export default async function DashboardPage({
         aria-label="Clinic summary"
         className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Total patients</p>
-          <p className="mt-2 text-3xl font-bold">{metrics.totalPatients}</p>
+        <article className="app-card flex min-h-44 flex-col p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-600">Total patients</p>
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-[#e2f6f7] text-[#087f8a]">
+              <Icon className="h-5 w-5" name="patients" />
+            </span>
+          </div>
+          <p className="mt-3 text-3xl font-bold text-[#073a5a]">{metrics.totalPatients}</p>
           <Link
-            className="mt-4 inline-block text-sm font-semibold text-teal-700 hover:text-teal-800"
+            className="mt-auto inline-flex items-center gap-1 pt-4 text-sm font-semibold text-teal-700 hover:text-teal-800"
             href="/patients"
           >
             View patients →
           </Link>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">
-            Assessment completion
-          </p>
-          <p className="mt-2 text-3xl font-bold">
+        <article className="app-card flex min-h-44 flex-col p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-600">
+              Assessment completion
+            </p>
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-[#e2f6f7] text-[#087f8a]">
+              <Icon className="h-5 w-5" name="clipboard" />
+            </span>
+          </div>
+          <p className="mt-3 text-3xl font-bold text-[#073a5a]">
             {metrics.completionRate}
             <span className="text-lg font-semibold text-slate-500">%</span>
           </p>
-          <p className="mt-4 text-sm text-slate-500">
+          <p className="mt-auto pt-4 text-sm text-slate-500">
             {metrics.totalAssessments === 0
               ? "No assessments sent yet"
               : `${metrics.completedAssessments} of ${metrics.totalAssessments} sent assessments completed`}
           </p>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">
-            Completed assessments
-          </p>
-          <p className="mt-2 text-3xl font-bold">
+        <article className="app-card flex min-h-44 flex-col p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-600">
+              Completed assessments
+            </p>
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-[#e2f6f7] text-[#087f8a]">
+              <Icon className="h-5 w-5" name="check" />
+            </span>
+          </div>
+          <p className="mt-3 text-3xl font-bold text-[#073a5a]">
             {metrics.completedAssessments}
           </p>
-          <p className="mt-4 text-sm text-slate-500">
+          <p className="mt-auto pt-4 text-sm text-slate-500">
             Across {metrics.patientsWithRiskScore}{" "}
             {metrics.patientsWithRiskScore === 1 ? "patient" : "patients"}
           </p>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">
-            Awaiting risk score
-          </p>
-          <p className="mt-2 text-3xl font-bold">
+        <article className="app-card flex min-h-44 flex-col p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-600">
+              Awaiting risk score
+            </p>
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-[#e2f6f7] text-[#087f8a]">
+              <Icon className="h-5 w-5" name="calendar" />
+            </span>
+          </div>
+          <p className="mt-3 text-3xl font-bold text-[#073a5a]">
             {metrics.patientsWithoutRiskScore}
           </p>
-          <p className="mt-4 text-sm text-slate-500">
+          <p className="mt-auto pt-4 text-sm text-slate-500">
             Patients without a completed DSMA-8
           </p>
         </article>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="app-card mt-6 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold">Patients by latest risk band</h2>
@@ -198,7 +221,7 @@ export default async function DashboardPage({
         )}
       </section>
 
-      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="app-card mt-6 p-5 sm:p-6">
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
             <h2 className="text-lg font-bold">Recent lab uploads</h2>
@@ -215,7 +238,7 @@ export default async function DashboardPage({
             <label className="text-xs font-semibold text-slate-600">
               From
               <input
-                className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900"
+                className="field-control mt-1 block w-full py-2 text-sm font-normal"
                 defaultValue={dateRange.fromText}
                 max={new Date().toISOString().slice(0, 10)}
                 name="from"
@@ -225,7 +248,7 @@ export default async function DashboardPage({
             <label className="text-xs font-semibold text-slate-600">
               To
               <input
-                className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900"
+                className="field-control mt-1 block w-full py-2 text-sm font-normal"
                 defaultValue={dateRange.toText}
                 max={new Date().toISOString().slice(0, 10)}
                 name="to"
@@ -234,14 +257,14 @@ export default async function DashboardPage({
             </label>
             <div className="flex gap-2">
               <button
-                className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800"
+                className="button-primary min-h-10 px-4 py-2"
                 type="submit"
               >
                 Apply
               </button>
               {dateRange.fromText || dateRange.toText ? (
                 <Link
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  className="button-secondary min-h-10 px-4 py-2"
                   href="/dashboard"
                 >
                   Clear
@@ -314,17 +337,12 @@ export default async function DashboardPage({
                           : ("COMPLETED" as const);
 
                     return (
-                      <tr key={upload.id}>
+                      <tr className="transition hover:bg-[#f6fbfc]" key={upload.id}>
                         <th className="px-4 py-4 font-medium" scope="row">
                           {upload.fileName}
                         </th>
                         <td className="whitespace-nowrap px-4 py-4 text-slate-600">
-                          {upload.createdAt.toLocaleString("en-US", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                            timeZone: "UTC",
-                          })}{" "}
-                          UTC
+                          {formatDateTimeUtc(upload.createdAt)}
                         </td>
                         <td className="px-4 py-4">
                           <span

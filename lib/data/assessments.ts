@@ -21,6 +21,22 @@ export type PublicAssessmentState =
   | { kind: "EXPIRED" }
   | { kind: "INVALID" };
 
+export async function persistClinicianExpiredAssessments(
+  clinicianId: string,
+  patientId?: string,
+  now = new Date(),
+) {
+  return db.assessment.updateMany({
+    where: {
+      status: "SENT",
+      expiresAt: { lte: now },
+      patientId,
+      patient: { clinicianId },
+    },
+    data: { status: "EXPIRED" },
+  });
+}
+
 export async function issueAssessment(patientId: string) {
   const clinician = await requireClinician();
   const patient = await db.patient.findFirst({
@@ -92,6 +108,9 @@ export async function issueAssessment(patientId: string) {
 export async function getAssessmentHistory(patientId: string) {
   const clinician = await requireClinician();
   const now = new Date();
+
+  await persistClinicianExpiredAssessments(clinician.id, patientId, now);
+
   const assessments = await db.assessment.findMany({
     where: {
       patientId,
@@ -113,10 +132,7 @@ export async function getAssessmentHistory(patientId: string) {
 
   return assessments.map((assessment) => ({
     ...assessment,
-    displayStatus:
-      assessment.status === "SENT" && assessment.expiresAt <= now
-        ? ("EXPIRED" as const)
-        : assessment.status,
+    displayStatus: assessment.status,
   }));
 }
 
@@ -149,10 +165,20 @@ export async function getPublicAssessmentState(
     return { kind: "COMPLETED" };
   }
 
-  if (
-    assessment.status === "EXPIRED" ||
-    assessment.expiresAt <= new Date()
-  ) {
+  const now = new Date();
+
+  if (assessment.status === "EXPIRED" || assessment.expiresAt <= now) {
+    if (assessment.status === "SENT") {
+      await db.assessment.updateMany({
+        where: {
+          tokenHash: hashAssessmentToken(token),
+          status: "SENT",
+          expiresAt: { lte: now },
+        },
+        data: { status: "EXPIRED" },
+      });
+    }
+
     return { kind: "EXPIRED" };
   }
 

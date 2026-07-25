@@ -17,8 +17,8 @@ function TerminalState({
   message: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-      <h1 className="text-2xl font-bold text-slate-950">{title}</h1>
+    <div className="app-card p-8 text-center">
+      <h1 className="text-2xl font-bold text-[#073a5a]">{title}</h1>
       <p className="mt-3 leading-7 text-slate-600">{message}</p>
       <p className="mt-4 text-sm text-slate-500">
         You may close this window. Contact your clinic if you need assistance.
@@ -81,8 +81,8 @@ export function QuestionnaireForm({ token }: { token: string }) {
 
       {dsma8.items.map((item, index) => (
         <fieldset
-          className={`rounded-2xl border bg-white p-5 shadow-sm sm:p-6 ${
-            invalidItems.has(item.id) ? "border-red-300" : "border-slate-200"
+          className={`app-card p-5 sm:p-6 ${
+            invalidItems.has(item.id) ? "is-invalid" : ""
           }`}
           key={item.id}
         >
@@ -96,7 +96,7 @@ export function QuestionnaireForm({ token }: { token: string }) {
 
               return (
                 <label
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm transition hover:border-teal-400 hover:bg-teal-50"
+                  className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm transition hover:border-teal-400 hover:bg-teal-50 has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50 has-[:checked]:font-semibold"
                   htmlFor={inputId}
                   key={option.value}
                 >
@@ -107,6 +107,7 @@ export function QuestionnaireForm({ token }: { token: string }) {
                     id={inputId}
                     name={item.id}
                     required
+                    className="h-4 w-4 accent-teal-700"
                     type="radio"
                     value={option.value}
                   />
@@ -123,13 +124,13 @@ export function QuestionnaireForm({ token }: { token: string }) {
         </fieldset>
       ))}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="app-card sticky bottom-3 p-5">
         <p className="text-sm leading-6 text-slate-600">
           Submit only when all eight questions are answered. This secure link
           can be used once.
         </p>
         <button
-          className="mt-4 w-full rounded-xl bg-teal-700 px-5 py-3 font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="button-primary mt-4 w-full"
           disabled={pending}
           type="submit"
         >

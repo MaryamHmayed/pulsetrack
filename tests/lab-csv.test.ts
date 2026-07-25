@@ -74,6 +74,22 @@ test("rejects rows that already exist so corrected re-uploads stay idempotent", 
   assert.match(report.rejected[0].errors.join(" "), /already stored/);
 });
 
+test("rejects numeric values that cannot fit the database decimal column", () => {
+  const report = parseAndValidateLabCsv(
+    [
+      headers,
+      "MRN-1001,2026-06-01,GLU-F,Fasting Glucose,100000000,mg/dL,70,99",
+      "MRN-1002,2026-06-02,HBA1C,Hemoglobin A1c,6.12345,%,4.0,5.6",
+    ].join("\n"),
+    context,
+  );
+
+  assert.equal(report.accepted.length, 0);
+  assert.equal(report.rejected.length, 2);
+  assert.match(report.rejected[0].errors.join(" "), /8 whole-number digits/);
+  assert.match(report.rejected[1].errors.join(" "), /4 decimal places/);
+});
+
 test("rejects empty files, wrong headers, and malformed CSV", () => {
   assert.throws(
     () => parseAndValidateLabCsv("", context),

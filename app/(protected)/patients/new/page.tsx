@@ -4,19 +4,19 @@ import { createPatientAction } from "../actions";
 
 export default function NewPatientPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+    <main className="app-page max-w-3xl">
       <Link
         className="text-sm font-semibold text-teal-700 hover:text-teal-800"
         href="/patients"
       >
         ← Back to patients
       </Link>
-      <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="app-card mt-6 p-6 sm:p-8">
         <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">
+          <p className="app-eyebrow">
             New record
           </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
+          <h1 className="app-title mt-2">
             Add patient
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">

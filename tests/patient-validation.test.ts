@@ -49,7 +49,7 @@ test("rejects impossible and future dates", () => {
   }
 });
 
-test("rejects invalid MRN, email, phone, and sex values", () => {
+test("rejects invalid MRN, email, phone, and gender values", () => {
   const result = validatePatientForm(
     patientForm({
       mrn: "bad mrn!",
@@ -65,6 +65,22 @@ test("rejects invalid MRN, email, phone, and sex values", () => {
     assert.ok(result.errors.email);
     assert.ok(result.errors.phone);
     assert.ok(result.errors.sex);
+  }
+});
+
+test("accepts only male and female gender values", () => {
+  for (const sex of ["MALE", "FEMALE"]) {
+    const result = validatePatientForm(patientForm({ sex }));
+    assert.equal(result.success, true);
+  }
+
+  for (const sex of ["OTHER", "UNKNOWN"]) {
+    const result = validatePatientForm(patientForm({ sex }));
+
+    assert.equal(result.success, false);
+    if (!result.success) {
+      assert.deepEqual(result.errors.sex, ["Select Male or Female."]);
+    }
   }
 });
 

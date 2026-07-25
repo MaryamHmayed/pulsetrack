@@ -18,7 +18,7 @@ export function LabUploadForm() {
     <div className="space-y-8">
       <form
         action={formAction}
-        className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        className="app-card p-5 sm:p-6"
       >
         <label className="block text-sm font-semibold" htmlFor="labFile">
           Lab results CSV
@@ -29,7 +29,7 @@ export function LabUploadForm() {
         <input
           accept=".csv,text/csv"
           aria-describedby="lab-file-help"
-          className="mt-4 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:font-semibold file:text-slate-700 hover:file:bg-slate-200"
+          className="mt-4 block w-full rounded-xl border border-dashed border-teal-300 bg-teal-50/40 px-4 py-5 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-white file:px-4 file:py-2 file:font-semibold file:text-teal-800 hover:file:bg-teal-50"
           disabled={pending}
           id="labFile"
           name="labFile"
@@ -42,11 +42,11 @@ export function LabUploadForm() {
             Valid rows are imported even when other rows are rejected.
           </p>
           <button
-            className="rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="button-primary"
             disabled={pending}
             type="submit"
           >
-            {pending ? "Validating and importingâ€¦" : "Upload and validate"}
+            {pending ? "Validating and importing…" : "Upload and validate"}
           </button>
         </div>
       </form>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { Icon } from "@/app/ui/icons";
 
 type PatientListItem = {
   id: string;
@@ -34,16 +35,16 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
   return (
     <>
       <div
-        className="mt-8 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row"
+        className="app-card mt-8 flex flex-col gap-3 p-3 sm:flex-row sm:p-4"
         role="search"
       >
-        <div className="flex-1">
+        <div className="relative flex-1">
           <label className="sr-only" htmlFor="patient-search">
             Search patients
           </label>
           <input
             autoComplete="off"
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
+            className="field-control has-leading-icon w-full"
             id="patient-search"
             maxLength={100}
             onChange={(event) => setSearch(event.target.value)}
@@ -51,10 +52,13 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
             type="search"
             value={search}
           />
+          <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-slate-400">
+            <Icon className="h-[19px] w-[19px]" name="search" />
+          </span>
         </div>
         {search ? (
           <button
-            className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="button-secondary"
             onClick={() => setSearch("")}
             type="button"
           >
@@ -84,7 +88,7 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
               </button>
             ) : (
               <Link
-                className="mt-5 inline-flex rounded-xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white"
+                className="button-primary mt-5"
                 href="/patients/new"
               >
                 Add first patient
@@ -98,7 +102,7 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
               {filteredPatients.length === 1 ? "patient" : "patients"}
               {search ? " matching your search" : ""}
             </p>
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="app-card overflow-hidden">
               <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-left text-sm">
                   <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -114,7 +118,7 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filteredPatients.map((patient) => (
-                      <tr className="hover:bg-slate-50" key={patient.id}>
+                      <tr className="transition hover:bg-teal-50/40" key={patient.id}>
                         <td className="px-5 py-4">
                           <p className="font-semibold text-slate-900">
                             {patient.fullName}
@@ -163,7 +167,7 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
                         </p>
                       </div>
                       <Link
-                        className="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-teal-700"
+                        className="button-secondary min-h-10 shrink-0 px-3 py-2 text-teal-700"
                         href={`/patients/${patient.id}`}
                       >
                         View

@@ -76,6 +76,18 @@ function isDecimal(value: string) {
   return DECIMAL_PATTERN.test(value) && Number.isFinite(Number(value));
 }
 
+function fitsLabDecimalColumn(value: string) {
+  if (!isDecimal(value)) {
+    return false;
+  }
+
+  const unsigned = value.replace(/^[+-]/, "");
+  const [wholePart = "", fractionalPart = ""] = unsigned.split(".");
+  const significantWholeDigits = wholePart.replace(/^0+/, "").length;
+
+  return significantWholeDigits <= 8 && fractionalPart.length <= 4;
+}
+
 export function createLabResultKey(
   mrn: string,
   collectedDate: string,
@@ -183,6 +195,10 @@ export function parseAndValidateLabCsv(
     for (const [field, value] of numericFields) {
       if (value && !isDecimal(value)) {
         errors.push(`${field} must be numeric.`);
+      } else if (value && !fitsLabDecimalColumn(value)) {
+        errors.push(
+          `${field} must use at most 8 whole-number digits and 4 decimal places.`,
+        );
       }
     }
 

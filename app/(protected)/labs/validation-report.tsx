@@ -10,7 +10,7 @@ function SummaryCard({
   tone: "neutral" | "accepted" | "rejected";
 }) {
   const toneClasses = {
-    neutral: "border-slate-200 bg-white text-slate-950",
+    neutral: "border-[#dce7ec] bg-white text-[#073a5a]",
     accepted: "border-emerald-200 bg-emerald-50 text-emerald-950",
     rejected: "border-red-200 bg-red-50 text-red-950",
   };
@@ -27,11 +27,11 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
   return (
     <section aria-labelledby="validation-report-title">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">
+        <p className="app-eyebrow">
           Import result
         </p>
         <h2
-          className="mt-2 text-2xl font-bold tracking-tight"
+          className="mt-2 text-2xl font-bold tracking-tight text-[#073a5a]"
           id="validation-report-title"
         >
           Row validation report
@@ -60,7 +60,7 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
         />
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="app-card mt-6 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
             <caption className="sr-only">
@@ -104,23 +104,23 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-4 py-4 font-mono text-xs">
-                    {row.values.mrn || "â€”"}
+                    {row.values.mrn || "—"}
                   </td>
                   <td className="whitespace-nowrap px-4 py-4">
-                    {row.values.collectedDate || "â€”"}
+                    {row.values.collectedDate || "—"}
                   </td>
                   <td className="px-4 py-4">
                     <span className="block font-medium">
-                      {row.values.testCode || "â€”"}
+                      {row.values.testCode || "—"}
                     </span>
                     <span className="mt-1 block text-xs text-slate-500">
                       {row.values.testName || "No test name"}
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-4 py-4">
-                    {row.values.value || "â€”"} {row.values.unit}
+                    {row.values.value || "—"} {row.values.unit}
                     <span className="mt-1 block text-xs text-slate-500">
-                      Ref: {row.values.refLow || "?"}â€“
+                      Ref: {row.values.refLow || "?"}–
                       {row.values.refHigh || "?"}
                     </span>
                   </td>

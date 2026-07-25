@@ -1,4 +1,5 @@
 import { buildTimeSeriesGeometry } from "@/lib/charts/time-series";
+import { formatShortDateUtc } from "@/lib/format/date";
 
 type LabTrendResult = {
   collectedDate: Date;
@@ -24,15 +25,6 @@ const plotRight = 616;
 const plotTop = 24;
 const plotBottom = 234;
 
-function formatChartDate(date: Date) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "2-digit",
-    timeZone: "UTC",
-  }).format(date);
-}
-
 function formatTick(value: number) {
   return new Intl.NumberFormat("en", {
     maximumFractionDigits: 2,
@@ -46,7 +38,7 @@ export function LabTrendChart({
 }: LabTrendChartProps) {
   if (results.length === 0) {
     return (
-      <article className="rounded-xl border border-dashed border-slate-300 p-5">
+      <article className="rounded-xl border border-dashed border-[#bfd6df] bg-[#fbfdfe] p-5">
         <h3 className="font-semibold text-slate-800">{title}</h3>
         <div className="flex min-h-56 items-center justify-center text-center">
           <div>
@@ -83,7 +75,7 @@ export function LabTrendChart({
   const descriptionId = `${idPrefix}-chart-description`;
 
   return (
-    <article className="rounded-xl border border-slate-200 p-5">
+    <article className="min-w-0 rounded-xl border border-[#dce7ec] bg-[#fbfdfe] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold text-slate-900">{title}</h3>
@@ -97,14 +89,15 @@ export function LabTrendChart({
             <span className="text-sm font-medium">{latest.unit}</span>
           </span>
           <span className="block text-xs text-slate-500">
-            Latest · {formatChartDate(latest.collectedDate)}
+            Latest · {formatShortDateUtc(latest.collectedDate)}
           </span>
         </p>
       </div>
 
       <svg
         aria-labelledby={`${titleId} ${descriptionId}`}
-        className="mt-4 h-auto w-full"
+        className="mt-4 block h-auto w-full"
+        preserveAspectRatio="xMidYMid meet"
         role="img"
         viewBox={`0 0 ${width} ${height}`}
       >
@@ -112,14 +105,14 @@ export function LabTrendChart({
         <desc id={descriptionId}>
           {orderedResults.length} {title} result
           {orderedResults.length === 1 ? "" : "s"}, from{" "}
-          {formatChartDate(orderedResults[0].collectedDate)} to{" "}
-          {formatChartDate(latest.collectedDate)}. Latest result is{" "}
+          {formatShortDateUtc(orderedResults[0].collectedDate)} to{" "}
+          {formatShortDateUtc(latest.collectedDate)}. Latest result is{" "}
           {latest.valueText} {latest.unit}. The reference range shown is from
           the latest result.
         </desc>
 
         <rect
-          fill="#d1fae5"
+          fill="#d8f1f2"
           height={geometry.referenceBand.bottom - geometry.referenceBand.top}
           opacity="0.65"
           width={plotRight - plotLeft}
@@ -130,7 +123,7 @@ export function LabTrendChart({
         {geometry.yTicks.map((tick) => (
           <g key={tick.value}>
             <line
-              stroke="#e2e8f0"
+              stroke="#dce7ec"
               strokeWidth="1"
               x1={plotLeft}
               x2={plotRight}
@@ -138,7 +131,7 @@ export function LabTrendChart({
               y2={tick.y}
             />
             <text
-              fill="#64748b"
+              fill="#60758a"
               fontSize="11"
               textAnchor="end"
               x={plotLeft - 9}
@@ -150,7 +143,7 @@ export function LabTrendChart({
         ))}
 
         <line
-          stroke="#94a3b8"
+          stroke="#8ba5b4"
           strokeWidth="1"
           x1={plotLeft}
           x2={plotRight}
@@ -158,7 +151,7 @@ export function LabTrendChart({
           y2={plotBottom}
         />
         <line
-          stroke="#94a3b8"
+          stroke="#8ba5b4"
           strokeWidth="1"
           x1={plotLeft}
           x2={plotLeft}
@@ -169,14 +162,14 @@ export function LabTrendChart({
         {geometry.xTicks.map((tick, index) => (
           <g key={tick.date.toISOString()}>
             <line
-              stroke="#94a3b8"
+              stroke="#8ba5b4"
               x1={tick.x}
               x2={tick.x}
               y1={plotBottom}
               y2={plotBottom + 5}
             />
             <text
-              fill="#64748b"
+              fill="#60758a"
               fontSize="11"
               textAnchor={
                 geometry.xTicks.length === 1
@@ -190,13 +183,13 @@ export function LabTrendChart({
               x={tick.x}
               y={plotBottom + 20}
             >
-              {formatChartDate(tick.date)}
+              {formatShortDateUtc(tick.date)}
             </text>
           </g>
         ))}
 
         <text
-          fill="#64748b"
+          fill="#60758a"
           fontSize="11"
           textAnchor="middle"
           transform="rotate(-90 13 129)"
@@ -210,7 +203,7 @@ export function LabTrendChart({
           <path
             d={linePath}
             fill="none"
-            stroke="#0f766e"
+            stroke="#1098a3"
             strokeLinejoin="round"
             strokeWidth="3"
           />
@@ -223,11 +216,11 @@ export function LabTrendChart({
             fill="#ffffff"
             key={`${point.date.toISOString()}-${index}`}
             r="5"
-            stroke="#0f766e"
+            stroke="#1098a3"
             strokeWidth="3"
           >
             <title>
-              {formatChartDate(point.date)}: {formatTick(point.value)}{" "}
+              {formatShortDateUtc(point.date)}: {formatTick(point.value)}{" "}
               {latest.unit}
             </title>
           </circle>
@@ -238,7 +231,7 @@ export function LabTrendChart({
         <span className="inline-flex items-center gap-2">
           <span
             aria-hidden="true"
-            className="h-2.5 w-5 rounded-sm bg-emerald-100"
+            className="h-2.5 w-5 rounded-sm bg-[#d8f1f2]"
           />
           Latest result’s reference range
         </span>

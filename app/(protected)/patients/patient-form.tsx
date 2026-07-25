@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import {
-  SEX_OPTIONS,
+  GENDER_OPTIONS,
   type PatientFormState,
   type PatientFormValues,
 } from "@/lib/validation/patient";
@@ -70,7 +70,7 @@ export function PatientForm({
               state.errors?.fullName ? "fullName-error" : undefined
             }
             aria-invalid={Boolean(state.errors?.fullName)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
+            className="field-control w-full"
             defaultValue={values.fullName}
             id="fullName"
             maxLength={100}
@@ -87,7 +87,7 @@ export function PatientForm({
           <input
             aria-describedby={state.errors?.dob ? "dob-error" : undefined}
             aria-invalid={Boolean(state.errors?.dob)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
+            className="field-control w-full"
             defaultValue={values.dob}
             id="dob"
             name="dob"
@@ -99,12 +99,12 @@ export function PatientForm({
 
         <div>
           <label className="mb-2 block text-sm font-medium" htmlFor="sex">
-            Sex
+            Gender
           </label>
           <select
             aria-describedby={state.errors?.sex ? "sex-error" : undefined}
             aria-invalid={Boolean(state.errors?.sex)}
-            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
+            className="field-control w-full"
             defaultValue={values.sex}
             id="sex"
             name="sex"
@@ -113,7 +113,7 @@ export function PatientForm({
             <option disabled value="">
               Select a value
             </option>
-            {SEX_OPTIONS.map((option) => (
+            {GENDER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -130,7 +130,7 @@ export function PatientForm({
             aria-describedby={state.errors?.mrn ? "mrn-error" : "mrn-help"}
             aria-invalid={Boolean(state.errors?.mrn)}
             autoCapitalize="characters"
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 font-mono uppercase outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
+            className="field-control w-full font-mono uppercase"
             defaultValue={values.mrn}
             id="mrn"
             maxLength={32}
@@ -151,7 +151,7 @@ export function PatientForm({
             aria-describedby={state.errors?.phone ? "phone-error" : undefined}
             aria-invalid={Boolean(state.errors?.phone)}
             autoComplete="tel"
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
+            className="field-control w-full"
             defaultValue={values.phone}
             id="phone"
             maxLength={20}
@@ -170,7 +170,7 @@ export function PatientForm({
             aria-describedby={state.errors?.email ? "email-error" : undefined}
             aria-invalid={Boolean(state.errors?.email)}
             autoComplete="email"
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
+            className="field-control w-full"
             defaultValue={values.email}
             id="email"
             maxLength={254}
@@ -194,13 +194,13 @@ export function PatientForm({
 
       <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end">
         <Link
-          className="rounded-xl border border-slate-300 px-5 py-3 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          className="button-secondary"
           href={cancelHref}
         >
           Cancel
         </Link>
         <button
-          className="rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="button-primary"
           disabled={pending}
           type="submit"
         >

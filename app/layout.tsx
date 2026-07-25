@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     template: "%s | PulseTrack",
   },
   description: "Remote patient monitoring for diabetes care teams.",
+  icons: {
+    icon: "/pulsetrack-mark.svg",
+  },
 };
 
 export default function RootLayout({

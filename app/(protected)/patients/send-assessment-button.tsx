@@ -16,7 +16,7 @@ export function SendAssessmentButton({ patientId }: { patientId: string }) {
     <div>
       <form action={formAction}>
         <button
-          className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="button-primary min-h-10 px-4 py-2"
           disabled={pending}
           type="submit"
         >

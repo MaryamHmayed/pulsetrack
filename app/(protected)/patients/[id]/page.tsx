@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getPatient } from "@/lib/data/patients";
 import { getAssessmentHistory } from "@/lib/data/assessments";
 import { getPatientLabResults } from "@/lib/data/lab-results";
+import { formatDateTimeUtc } from "@/lib/format/date";
 import { DeletePatientButton } from "../delete-patient-button";
 import { SendAssessmentButton } from "../send-assessment-button";
 import { AssessmentScoreChart } from "./assessment-score-chart";
@@ -10,13 +11,6 @@ import { LabTrendChart } from "./lab-trend-chart";
 
 function formatDate(date: Date) {
   return date.toISOString().slice(0, 10);
-}
-
-function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
 }
 
 const statusStyles = {
@@ -95,7 +89,7 @@ export default async function PatientPage({
   );
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main className="app-page">
       <Link
         className="text-sm font-semibold text-teal-700 hover:text-teal-800"
         href="/patients"
@@ -103,11 +97,11 @@ export default async function PatientPage({
         ← Back to patients
       </Link>
 
-      <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <section className="app-card mt-6 overflow-hidden p-6 sm:p-8">
         <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
           <div>
             <p className="font-mono text-sm text-slate-500">{patient.mrn}</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight">
+            <h1 className="app-title mt-2">
               {patient.fullName}
             </h1>
             <p className="mt-2 text-slate-600">
@@ -117,7 +111,7 @@ export default async function PatientPage({
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
-              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="button-secondary min-h-10 px-4 py-2"
               href={`/patients/${patient.id}/edit`}
             >
               Edit patient
@@ -159,7 +153,7 @@ export default async function PatientPage({
         </dl>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="app-card mt-6 p-5 sm:p-6">
         <div>
           <h2 className="text-lg font-bold">Lab trends</h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -182,23 +176,23 @@ export default async function PatientPage({
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="app-card min-w-0 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-bold">Lab results</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
                 {labResults.length}{" "}
                 {labResults.length === 1 ? "result" : "results"}
               </span>
               <Link
-                className="rounded-lg border border-teal-700 px-3 py-2 text-xs font-semibold text-teal-700 transition hover:bg-teal-50"
+                className="button-secondary button-compact text-teal-700"
                 href="/labs"
               >
                 Upload CSV
               </Link>
               {labResults.length > 0 ? (
                 <a
-                  className="rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-teal-800"
+                  className="button-primary button-compact"
                   download
                   href={`/patients/${patient.id}/labs.csv`}
                 >
@@ -247,7 +241,7 @@ export default async function PatientPage({
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {labResults.map((result) => (
-                      <tr key={result.id}>
+                      <tr className="transition hover:bg-[#f6fbfc]" key={result.id}>
                         <td className="whitespace-nowrap px-4 py-4">
                           {formatDate(result.collectedDate)}
                         </td>
@@ -272,7 +266,7 @@ export default async function PatientPage({
                             {labRangeLabels[result.rangeStatus]}
                           </span>
                           <span className="mt-1 block text-xs text-slate-500">
-                            {result.refLowText}â€“{result.refHighText}{" "}
+                            {result.refLowText}–{result.refHighText}{" "}
                             {result.unit}
                           </span>
                         </td>
@@ -285,7 +279,7 @@ export default async function PatientPage({
           )}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="app-card min-w-0 p-5 sm:p-6">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <h2 className="text-lg font-bold">Assessment history</h2>
             <SendAssessmentButton patientId={patient.id} />
@@ -310,7 +304,7 @@ export default async function PatientPage({
                         DSMA-8 v{assessment.questionnaireVersion}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        Sent {formatDateTime(assessment.sentAt)} ·{" "}
+                        Sent {formatDateTimeUtc(assessment.sentAt)} ·{" "}
                         {assessment.deliveryMode === "PREVIEW"
                           ? "Preview"
                           : "Email"}
@@ -334,7 +328,7 @@ export default async function PatientPage({
                     </div>
                   ) : assessment.displayStatus === "SENT" ? (
                     <p className="mt-3 text-xs text-slate-500">
-                      Expires {formatDateTime(assessment.expiresAt)}
+                      Expires {formatDateTimeUtc(assessment.expiresAt)}
                     </p>
                   ) : null}
                 </li>

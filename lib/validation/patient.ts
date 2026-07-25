@@ -1,11 +1,9 @@
-export const SEX_OPTIONS = [
+export const GENDER_OPTIONS = [
   { value: "FEMALE", label: "Female" },
   { value: "MALE", label: "Male" },
-  { value: "OTHER", label: "Other" },
-  { value: "UNKNOWN", label: "Unknown" },
 ] as const;
 
-export type PatientSex = (typeof SEX_OPTIONS)[number]["value"];
+export type PatientSex = (typeof GENDER_OPTIONS)[number]["value"];
 
 export type PatientFormValues = {
   fullName: string;
@@ -99,9 +97,11 @@ export function validatePatientForm(formData: FormData):
     errors.dob = ["Date of birth cannot be more than 130 years ago."];
   }
 
-  const validSex = SEX_OPTIONS.some((option) => option.value === values.sex);
+  const validSex = GENDER_OPTIONS.some(
+    (option) => option.value === values.sex,
+  );
   if (!validSex) {
-    errors.sex = ["Select a valid sex value."];
+    errors.sex = ["Select Male or Female."];
   }
 
   if (!MRN_PATTERN.test(values.mrn)) {

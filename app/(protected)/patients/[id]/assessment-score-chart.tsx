@@ -1,3 +1,5 @@
+import { formatShortDateUtc } from "@/lib/format/date";
+
 type AssessmentScore = {
   completedAt: Date;
   score: number;
@@ -23,15 +25,6 @@ const riskBands = [
   { label: "Moderate", min: 6.5, max: 12.5, fill: "#fef9c3" },
   { label: "Low", min: 0, max: 6.5, fill: "#d1fae5" },
 ] as const;
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "2-digit",
-    timeZone: "UTC",
-  }).format(date);
-}
 
 function uniqueDates(dates: Date[]) {
   const seen = new Set<number>();
@@ -102,7 +95,7 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
   const latest = orderedScores.at(-1)!;
 
   return (
-    <div className="mt-6 rounded-xl border border-slate-200 p-4">
+    <div className="mt-6 min-w-0 rounded-xl border border-[#dce7ec] bg-[#fbfdfe] p-3 sm:p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold text-slate-900">
@@ -117,14 +110,15 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
             {latest.score}/24
           </span>
           <span className="block text-xs text-slate-500">
-            Latest · {formatDate(latest.completedAt)}
+            Latest · {formatShortDateUtc(latest.completedAt)}
           </span>
         </p>
       </div>
 
       <svg
         aria-labelledby="assessment-score-title assessment-score-description"
-        className="mt-3 h-auto w-full"
+        className="mt-3 block h-auto w-full"
+        preserveAspectRatio="xMidYMid meet"
         role="img"
         viewBox={`0 0 ${width} ${height}`}
       >
@@ -152,7 +146,7 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
                 y={top}
               />
               <text
-                fill="#475569"
+                fill="#49677c"
                 fontSize="11"
                 x={plot.right + 10}
                 y={top + (bottom - top) / 2 + 4}
@@ -166,7 +160,7 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
         {[0, 6, 12, 18, 24].map((tick) => (
           <g key={tick}>
             <line
-              stroke="#cbd5e1"
+              stroke="#c9dce4"
               strokeWidth="1"
               x1={plot.left}
               x2={plot.right}
@@ -174,7 +168,7 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
               y2={yForScore(tick)}
             />
             <text
-              fill="#64748b"
+              fill="#60758a"
               fontSize="11"
               textAnchor="end"
               x={plot.left - 9}
@@ -186,14 +180,14 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
         ))}
 
         <line
-          stroke="#94a3b8"
+          stroke="#8ba5b4"
           x1={plot.left}
           x2={plot.left}
           y1={plot.top}
           y2={plot.bottom}
         />
         <line
-          stroke="#94a3b8"
+          stroke="#8ba5b4"
           x1={plot.left}
           x2={plot.right}
           y1={plot.bottom}
@@ -206,14 +200,14 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
           return (
             <g key={date.toISOString()}>
               <line
-                stroke="#94a3b8"
+                stroke="#8ba5b4"
                 x1={x}
                 x2={x}
                 y1={plot.bottom}
                 y2={plot.bottom + 5}
               />
               <text
-                fill="#64748b"
+                fill="#60758a"
                 fontSize="11"
                 textAnchor={
                   xTicks.length === 1
@@ -227,14 +221,14 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
                 x={x}
                 y={plot.bottom + 20}
               >
-                {formatDate(date)}
+                {formatShortDateUtc(date)}
               </text>
             </g>
           );
         })}
 
         <text
-          fill="#64748b"
+          fill="#60758a"
           fontSize="11"
           textAnchor="middle"
           transform="rotate(-90 14 134)"
@@ -248,7 +242,7 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
           <path
             d={linePath}
             fill="none"
-            stroke="#0f766e"
+            stroke="#1098a3"
             strokeLinejoin="round"
             strokeWidth="3"
           />
@@ -261,11 +255,11 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
             fill="#ffffff"
             key={`${point.completedAt.toISOString()}-${index}`}
             r="5"
-            stroke="#0f766e"
+            stroke="#1098a3"
             strokeWidth="3"
           >
             <title>
-              {formatDate(point.completedAt)}: {point.score} out of 24
+              {formatShortDateUtc(point.completedAt)}: {point.score} out of 24
             </title>
           </circle>
         ))}

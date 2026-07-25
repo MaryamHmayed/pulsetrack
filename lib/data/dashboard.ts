@@ -2,6 +2,7 @@ import "server-only";
 
 import { requireClinician } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { persistClinicianExpiredAssessments } from "@/lib/data/assessments";
 import {
   calculateCompletionRate,
   countLatestPatientRiskBands,
@@ -16,6 +17,8 @@ export async function getClinicDashboardData(
   dateFilter: DashboardDateFilter = {},
 ) {
   const clinician = await requireClinician();
+  await persistClinicianExpiredAssessments(clinician.id);
+
   const clinicianPatientFilter = {
     patient: { clinicianId: clinician.id },
   };

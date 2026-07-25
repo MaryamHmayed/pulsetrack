@@ -8,7 +8,7 @@ function DeleteButton() {
 
   return (
     <button
-      className="rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-60"
+      className="button-danger min-h-10 px-4 py-2"
       disabled={pending}
       type="submit"
     >

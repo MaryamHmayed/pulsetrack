@@ -9,17 +9,17 @@ export default function DashboardError({
   unstable_retry: () => void;
 }) {
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <main className="app-page">
       <section
         aria-labelledby="dashboard-error-title"
-        className="rounded-2xl border border-red-200 bg-white px-6 py-12 text-center shadow-sm"
+        className="app-card accent-top-danger px-5 py-10 text-center sm:px-8 sm:py-12"
         role="alert"
       >
         <p className="text-sm font-semibold uppercase tracking-wider text-red-700">
           Dashboard unavailable
         </p>
         <h1
-          className="mt-3 text-2xl font-bold tracking-tight text-slate-950"
+          className="mt-3 text-2xl font-bold tracking-tight text-[#073a5a]"
           id="dashboard-error-title"
         >
           We couldn’t load the clinic overview
@@ -30,14 +30,14 @@ export default function DashboardError({
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
-            className="rounded-xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-teal-800"
+            className="button-primary"
             onClick={() => unstable_retry()}
             type="button"
           >
             Try again
           </button>
           <Link
-            className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="button-secondary"
             href="/patients"
           >
             Go to patients

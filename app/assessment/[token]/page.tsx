@@ -1,5 +1,6 @@
 import { dsma8 } from "@/lib/questionnaire/dsma8";
 import { getPublicAssessmentState } from "@/lib/data/assessments";
+import { PulseTrackLogo } from "@/app/ui/pulsetrack-logo";
 import { QuestionnaireForm } from "./questionnaire-form";
 import { ExpiredMarker } from "./expired-marker";
 
@@ -11,8 +12,8 @@ function UnavailableState({
   message: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-      <h1 className="text-2xl font-bold text-slate-950">{title}</h1>
+    <div className="app-card p-8 text-center">
+      <h1 className="text-2xl font-bold text-[#073a5a]">{title}</h1>
       <p className="mt-3 leading-7 text-slate-600">{message}</p>
       <p className="mt-4 text-sm text-slate-500">
         Contact your clinic if you need help.
@@ -30,18 +31,17 @@ export default async function AssessmentPage({
   const assessment = await getPublicAssessmentState(token);
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-10 sm:py-16">
-      <div className="mx-auto max-w-3xl">
-        <header className="mb-8 text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-700">
-            PulseTrack
-          </p>
+    <main className="login-backdrop relative min-h-screen overflow-hidden px-4 py-8 sm:py-12">
+      <div className="relative z-10 mx-auto max-w-3xl">
+        <header className="mb-8 flex justify-center">
+          <PulseTrackLogo />
         </header>
 
         {assessment.kind === "ACTIVE" ? (
           <>
-            <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-              <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+            <div className="app-card accent-top-teal mb-6 p-6 sm:p-8">
+              <p className="app-eyebrow">Secure patient questionnaire</p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#073a5a]">
                 {dsma8.title}
               </h1>
               <p className="mt-3 leading-7 text-slate-600">

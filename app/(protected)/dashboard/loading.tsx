@@ -12,7 +12,7 @@ export default function DashboardLoading() {
     <main
       aria-busy="true"
       aria-labelledby="dashboard-loading-title"
-      className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8"
+      className="app-page"
     >
       <p className="sr-only" id="dashboard-loading-title" role="status">
         Loading clinic dashboard
@@ -33,7 +33,7 @@ export default function DashboardLoading() {
       >
         {Array.from({ length: 4 }, (_, index) => (
           <div
-            className="rounded-2xl border border-slate-200 bg-white p-5"
+            className="app-card p-5"
             key={index}
           >
             <SkeletonBlock className="h-4 w-36" />
@@ -45,7 +45,7 @@ export default function DashboardLoading() {
 
       <section
         aria-hidden="true"
-        className="mt-6 rounded-2xl border border-slate-200 bg-white p-6"
+        className="app-card mt-6 p-6"
       >
         <SkeletonBlock className="h-6 w-64 max-w-full" />
         <SkeletonBlock className="mt-3 h-4 w-96 max-w-full" />
@@ -59,7 +59,7 @@ export default function DashboardLoading() {
 
       <section
         aria-hidden="true"
-        className="mt-6 rounded-2xl border border-slate-200 bg-white p-6"
+        className="app-card mt-6 p-6"
       >
         <div className="flex flex-col justify-between gap-5 lg:flex-row">
           <div className="w-full max-w-md">
