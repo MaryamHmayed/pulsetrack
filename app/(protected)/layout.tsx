@@ -5,6 +5,7 @@ import { requireClinician } from "@/lib/auth/session";
 const navigation = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/patients", label: "Patients" },
+  { href: "/labs", label: "Lab uploads" },
 ] as const;
 
 export default async function ProtectedLayout({

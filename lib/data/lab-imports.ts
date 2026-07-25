@@ -12,10 +12,16 @@ import {
   MAX_LAB_CSV_BYTES,
   sanitizeLabImportFileName,
 } from "@/lib/labs/upload";
+import {
+  createLabUploadReport,
+  readLabUploadReport,
+  type LabUploadReport,
+} from "@/lib/labs/report";
 
 export type LabImportResult = LabCsvValidationReport & {
   importId: string;
   importedCount: number;
+  report: LabUploadReport;
 };
 
 export async function importLabCsv(
@@ -131,12 +137,18 @@ export async function importLabCsv(
       const rejected = [...validation.rejected, ...concurrentDuplicates].sort(
         (first, second) => first.rowNumber - second.rowNumber,
       );
+      const report = createLabUploadReport({
+        totalRows: validation.totalRows,
+        accepted,
+        rejected,
+      });
 
       await transaction.labImport.update({
         where: { id: labImport.id },
         data: {
           acceptedCount: accepted.length,
           rejectedCount: rejected.length,
+          report,
         },
       });
 
@@ -146,6 +158,7 @@ export async function importLabCsv(
         importedCount: accepted.length,
         accepted,
         rejected,
+        report,
       };
     },
     {
@@ -154,4 +167,36 @@ export async function importLabCsv(
       timeout: 10_000,
     },
   );
+}
+
+export async function getLabImportReport(importId: string) {
+  const clinician = await requireClinician();
+  const labImport = await db.labImport.findFirst({
+    where: {
+      id: importId,
+      clinicianId: clinician.id,
+    },
+    select: {
+      id: true,
+      fileName: true,
+      createdAt: true,
+      report: true,
+    },
+  });
+
+  if (!labImport) {
+    return null;
+  }
+
+  const report = readLabUploadReport(labImport.report);
+  if (!report) {
+    return null;
+  }
+
+  return {
+    id: labImport.id,
+    fileName: labImport.fileName,
+    createdAt: labImport.createdAt,
+    report,
+  };
 }

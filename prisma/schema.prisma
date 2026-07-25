@@ -109,6 +109,7 @@ model LabImport {
   totalRows     Int
   acceptedCount Int
   rejectedCount Int
+  report        Json?
   createdAt     DateTime    @default(now())
   clinician     Clinician   @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
   labResults    LabResult[]
