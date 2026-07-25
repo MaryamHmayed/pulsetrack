@@ -4,6 +4,7 @@ import {
   resolveAssessmentDeliveryMode,
   type AssessmentDeliveryMode,
 } from "@/lib/email/delivery-mode";
+import { describeResendError } from "@/lib/email/resend-error";
 
 type AssessmentEmailInput = {
   assessmentId: string;
@@ -148,8 +149,16 @@ export async function sendAssessmentEmail(
   }
 
   if (!response.ok) {
+    let errorPayload: unknown;
+
+    try {
+      errorPayload = await response.json();
+    } catch {
+      errorPayload = null;
+    }
+
     throw new EmailDeliveryError(
-      `The email provider rejected the request (${response.status}).`,
+      describeResendError(response.status, errorPayload),
     );
   }
 
