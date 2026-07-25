@@ -7,7 +7,14 @@ import {
   countLatestPatientRiskBands,
 } from "@/lib/dashboard/metrics";
 
-export async function getClinicDashboardMetrics() {
+type DashboardDateFilter = {
+  from?: Date;
+  toExclusive?: Date;
+};
+
+export async function getClinicDashboardData(
+  dateFilter: DashboardDateFilter = {},
+) {
   const clinician = await requireClinician();
   const clinicianPatientFilter = {
     patient: { clinicianId: clinician.id },
@@ -18,6 +25,7 @@ export async function getClinicDashboardMetrics() {
     totalAssessments,
     completedAssessments,
     patientsWithScores,
+    recentUploads,
   ] = await Promise.all([
     db.patient.count({
       where: { clinicianId: clinician.id },
@@ -53,6 +61,28 @@ export async function getClinicDashboardMetrics() {
         },
       },
     }),
+    db.labImport.findMany({
+      where: {
+        clinicianId: clinician.id,
+        createdAt:
+          dateFilter.from || dateFilter.toExclusive
+            ? {
+                gte: dateFilter.from,
+                lt: dateFilter.toExclusive,
+              }
+            : undefined,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: {
+        id: true,
+        fileName: true,
+        totalRows: true,
+        acceptedCount: true,
+        rejectedCount: true,
+        createdAt: true,
+      },
+    }),
   ]);
 
   const latestPatientRiskBands = patientsWithScores.map(
@@ -70,5 +100,6 @@ export async function getClinicDashboardMetrics() {
     riskBandCounts: countLatestPatientRiskBands(latestPatientRiskBands),
     patientsWithRiskScore: latestPatientRiskBands.length,
     patientsWithoutRiskScore: totalPatients - latestPatientRiskBands.length,
+    recentUploads,
   };
 }
