@@ -81,22 +81,36 @@ export function QuestionnaireForm({ token }: { token: string }) {
 
       {dsma8.items.map((item, index) => (
         <fieldset
-          className={`app-card p-5 sm:p-6 ${
+          aria-describedby={
+            invalidItems.has(item.id) ? `${item.id}-error` : undefined
+          }
+          aria-invalid={invalidItems.has(item.id)}
+          className={`app-card min-w-0 p-5 sm:p-6 ${
             invalidItems.has(item.id) ? "is-invalid" : ""
           }`}
           key={item.id}
         >
-          <legend className="px-1 text-base font-semibold leading-7 text-slate-900">
-            <span className="mr-2 text-teal-700">{index + 1}.</span>
-            {item.text}
+          <legend className="sr-only">
+            Question {index + 1}: {item.text}
           </legend>
+          <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+            <span
+              aria-hidden="true"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#e2f6f7] text-sm font-bold text-[#087f8a]"
+            >
+              {index + 1}
+            </span>
+            <p className="min-w-0 flex-1 text-base font-semibold leading-7 text-slate-900">
+              {item.text}
+            </p>
+          </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {dsma8.options.map((option) => {
               const inputId = `${item.id}-${option.value}`;
 
               return (
                 <label
-                  className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm transition hover:border-teal-400 hover:bg-teal-50 has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50 has-[:checked]:font-semibold"
+                  className="flex min-h-12 min-w-0 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm transition hover:border-teal-400 hover:bg-teal-50 has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50 has-[:checked]:font-semibold"
                   htmlFor={inputId}
                   key={option.value}
                 >
@@ -107,17 +121,20 @@ export function QuestionnaireForm({ token }: { token: string }) {
                     id={inputId}
                     name={item.id}
                     required
-                    className="h-4 w-4 accent-teal-700"
+                    className="h-4 w-4 shrink-0 accent-teal-700"
                     type="radio"
                     value={option.value}
                   />
-                  <span>{option.label}</span>
+                  <span className="min-w-0 leading-5">{option.label}</span>
                 </label>
               );
             })}
           </div>
           {invalidItems.has(item.id) ? (
-            <p className="mt-3 text-sm text-red-700">
+            <p
+              className="mt-3 text-sm text-red-700"
+              id={`${item.id}-error`}
+            >
               Select one answer for this question.
             </p>
           ) : null}
