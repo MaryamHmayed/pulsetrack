@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "prisma db seed",
+    "fhir:check": "tsx scripts/check-fhir.ts",
     "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
