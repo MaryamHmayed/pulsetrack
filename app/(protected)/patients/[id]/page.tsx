@@ -5,6 +5,7 @@ import { getAssessmentHistory } from "@/lib/data/assessments";
 import { getPatientLabResults } from "@/lib/data/lab-results";
 import { DeletePatientButton } from "../delete-patient-button";
 import { SendAssessmentButton } from "../send-assessment-button";
+import { AssessmentScoreChart } from "./assessment-score-chart";
 import { LabTrendChart } from "./lab-trend-chart";
 
 function formatDate(date: Date) {
@@ -79,6 +80,18 @@ export default async function PatientPage({
   );
   const hba1cResults = labResults.filter(
     (result) => result.testCode === "HBA1C",
+  );
+  const completedScores = assessments.flatMap((assessment) =>
+    assessment.displayStatus === "COMPLETED" &&
+    assessment.completedAt &&
+    assessment.score !== null
+      ? [
+          {
+            completedAt: assessment.completedAt,
+            score: assessment.score,
+          },
+        ]
+      : [],
   );
 
   return (
@@ -277,6 +290,7 @@ export default async function PatientPage({
             <h2 className="text-lg font-bold">Assessment history</h2>
             <SendAssessmentButton patientId={patient.id} />
           </div>
+          <AssessmentScoreChart scores={completedScores} />
           {assessments.length === 0 ? (
             <div className="mt-6 rounded-xl border border-dashed border-slate-300 px-5 py-10 text-center">
               <p className="text-sm font-medium text-slate-700">
