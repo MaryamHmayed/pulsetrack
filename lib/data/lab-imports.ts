@@ -200,3 +200,22 @@ export async function getLabImportReport(importId: string) {
     report,
   };
 }
+
+export async function listLabImports() {
+  const clinician = await requireClinician();
+
+  return db.labImport.findMany({
+    where: { clinicianId: clinician.id },
+    orderBy: { createdAt: "desc" },
+    take: 25,
+    select: {
+      id: true,
+      fileName: true,
+      totalRows: true,
+      acceptedCount: true,
+      rejectedCount: true,
+      createdAt: true,
+      report: true,
+    },
+  });
+}
