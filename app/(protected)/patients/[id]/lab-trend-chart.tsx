@@ -6,10 +6,10 @@ type LabTrendResult = {
   value: number;
   valueText: string;
   unit: string;
-  refLow: number;
-  refLowText: string;
-  refHigh: number;
-  refHighText: string;
+  refLow: number | null;
+  refLowText: string | null;
+  refHigh: number | null;
+  refHighText: string | null;
 };
 
 type LabTrendChartProps = {
@@ -57,13 +57,20 @@ export function LabTrendChart({
       first.collectedDate.getTime() - second.collectedDate.getTime(),
   );
   const latest = orderedResults.at(-1)!;
+  const latestWithRange = orderedResults.findLast(
+    (result) =>
+      result.refLow !== null &&
+      result.refHigh !== null &&
+      result.refLowText !== null &&
+      result.refHighText !== null,
+  );
   const geometry = buildTimeSeriesGeometry(
     orderedResults.map((result) => ({
       date: result.collectedDate,
       value: result.value,
     })),
-    latest.refLow,
-    latest.refHigh,
+    latestWithRange?.refLow ?? null,
+    latestWithRange?.refHigh ?? null,
   );
   const linePath = geometry.points
     .map(
@@ -80,7 +87,9 @@ export function LabTrendChart({
         <div>
           <h3 className="font-semibold text-slate-900">{title}</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Reference {latest.refLowText}–{latest.refHighText} {latest.unit}
+            {latestWithRange
+              ? `Reference ${latestWithRange.refLowText}-${latestWithRange.refHighText} ${latestWithRange.unit}`
+              : "Reference range unavailable"}
           </p>
         </div>
         <p className="text-right">
@@ -107,18 +116,22 @@ export function LabTrendChart({
           {orderedResults.length === 1 ? "" : "s"}, from{" "}
           {formatShortDateUtc(orderedResults[0].collectedDate)} to{" "}
           {formatShortDateUtc(latest.collectedDate)}. Latest result is{" "}
-          {latest.valueText} {latest.unit}. The reference range shown is from
-          the latest result.
+          {latest.valueText} {latest.unit}.
+          {latestWithRange
+            ? " The most recent recorded reference range is shown."
+            : " No reference range was supplied."}
         </desc>
 
-        <rect
-          fill="#d8f1f2"
-          height={geometry.referenceBand.bottom - geometry.referenceBand.top}
-          opacity="0.65"
-          width={plotRight - plotLeft}
-          x={plotLeft}
-          y={geometry.referenceBand.top}
-        />
+        {geometry.referenceBand ? (
+          <rect
+            fill="#d8f1f2"
+            height={geometry.referenceBand.bottom - geometry.referenceBand.top}
+            opacity="0.65"
+            width={plotRight - plotLeft}
+            x={plotLeft}
+            y={geometry.referenceBand.top}
+          />
+        ) : null}
 
         {geometry.yTicks.map((tick) => (
           <g key={tick.value}>
@@ -228,13 +241,17 @@ export function LabTrendChart({
       </svg>
 
       <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-        <span className="inline-flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="h-2.5 w-5 rounded-sm bg-[#d8f1f2]"
-          />
-          Latest result’s reference range
-        </span>
+        {geometry.referenceBand ? (
+          <span className="inline-flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="h-2.5 w-5 rounded-sm bg-[#d8f1f2]"
+            />
+            Most recent recorded reference range
+          </span>
+        ) : (
+          <span>Reference range not supplied</span>
+        )}
         {orderedResults.length === 1 ? (
           <span>One result; another is needed to establish a trend.</span>
         ) : (

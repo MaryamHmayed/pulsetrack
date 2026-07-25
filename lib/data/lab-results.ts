@@ -26,8 +26,8 @@ export async function getPatientLabResults(patientId: string) {
 
   return results.map((result) => {
     const value = result.value.toNumber();
-    const refLow = result.refLow.toNumber();
-    const refHigh = result.refHigh.toNumber();
+    const refLow = result.refLow?.toNumber() ?? null;
+    const refHigh = result.refHigh?.toNumber() ?? null;
     const rangeStatus = classifyLabRange(value, refLow, refHigh);
 
     return {
@@ -39,9 +39,9 @@ export async function getPatientLabResults(patientId: string) {
       valueText: result.value.toString(),
       unit: result.unit,
       refLow,
-      refLowText: result.refLow.toString(),
+      refLowText: result.refLow?.toString() ?? null,
       refHigh,
-      refHighText: result.refHigh.toString(),
+      refHighText: result.refHigh?.toString() ?? null,
       rangeStatus,
     };
   });
@@ -84,8 +84,8 @@ export async function getPatientLabExport(patientId: string) {
       testName: result.testName,
       value: result.value.toString(),
       unit: result.unit,
-      refLow: result.refLow.toString(),
-      refHigh: result.refHigh.toString(),
+      refLow: result.refLow?.toString() ?? "",
+      refHigh: result.refHigh?.toString() ?? "",
     })),
   };
 }

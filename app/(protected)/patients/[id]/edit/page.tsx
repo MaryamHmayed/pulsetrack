@@ -46,8 +46,8 @@ export default async function EditPatientPage({
             dob: patient.dob.toISOString().slice(0, 10),
             sex: patient.sex,
             mrn: patient.mrn,
-            email: patient.email,
-            phone: patient.phone,
+            email: patient.email ?? "",
+            phone: patient.phone ?? "",
           }}
           submitLabel="Save changes"
         />

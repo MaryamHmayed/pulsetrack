@@ -1,10 +1,14 @@
-export type LabRangeStatus = "LOW" | "NORMAL" | "HIGH";
+export type LabRangeStatus = "LOW" | "NORMAL" | "HIGH" | "UNKNOWN";
 
 export function classifyLabRange(
   value: number,
-  refLow: number,
-  refHigh: number,
+  refLow: number | null,
+  refHigh: number | null,
 ): LabRangeStatus {
+  if (refLow === null || refHigh === null) {
+    return "UNKNOWN";
+  }
+
   if (value < refLow) {
     return "LOW";
   }

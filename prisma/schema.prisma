@@ -37,6 +37,23 @@ enum RiskBand {
   VERY_HIGH
 }
 
+enum FhirSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+  READ_ONLY
+}
+
+enum FhirOwnership {
+  OWNED
+  READ_ONLY
+}
+
+enum ClinicalDataSource {
+  LOCAL
+  FHIR
+}
+
 model Clinician {
   id           String      @id @default(cuid())
   email        String      @unique
@@ -50,22 +67,28 @@ model Clinician {
 }
 
 model Patient {
-  id          String       @id @default(cuid())
-  clinicianId String
-  fullName    String
-  dob         DateTime     @db.Date
-  sex         Sex
-  mrn         String       @unique
-  email       String
-  phone       String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  clinician   Clinician    @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
-  assessments Assessment[]
-  labResults  LabResult[]
+  id               String         @id @default(cuid())
+  clinicianId      String
+  fullName         String
+  dob              DateTime       @db.Date
+  sex              Sex
+  mrn              String         @unique
+  email            String?
+  phone            String?
+  fhirResourceId   String?        @unique
+  fhirOwnership    FhirOwnership?
+  fhirSyncStatus   FhirSyncStatus @default(PENDING)
+  fhirLastSyncedAt DateTime?
+  fhirLastError    String?        @db.VarChar(500)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  clinician        Clinician      @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  assessments      Assessment[]
+  labResults       LabResult[]
 
   @@index([clinicianId])
   @@index([clinicianId, fullName])
+  @@index([clinicianId, fhirSyncStatus])
 }
 
 model Session {
@@ -118,21 +141,28 @@ model LabImport {
 }
 
 model LabResult {
-  id            String     @id @default(cuid())
-  patientId     String
-  importId      String?
-  collectedDate DateTime   @db.Date
-  testCode      String
-  testName      String
-  value         Decimal    @db.Decimal(12, 4)
-  unit          String
-  refLow        Decimal    @db.Decimal(12, 4)
-  refHigh       Decimal    @db.Decimal(12, 4)
-  createdAt     DateTime   @default(now())
-  patient       Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  import        LabImport? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  id               String             @id @default(cuid())
+  patientId        String
+  importId         String?
+  collectedDate    DateTime           @db.Date
+  testCode         String
+  testName         String
+  value            Decimal            @db.Decimal(12, 4)
+  unit             String
+  refLow           Decimal?           @db.Decimal(12, 4)
+  refHigh          Decimal?           @db.Decimal(12, 4)
+  source           ClinicalDataSource @default(LOCAL)
+  fhirResourceId   String?            @unique
+  fhirSyncStatus   FhirSyncStatus     @default(PENDING)
+  fhirLastSyncedAt DateTime?
+  fhirLastError    String?            @db.VarChar(500)
+  createdAt        DateTime           @default(now())
+  patient          Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  import           LabImport?         @relation(fields: [importId], references: [id], onDelete: SetNull)
 
   @@unique([patientId, collectedDate, testCode])
   @@index([patientId, testCode, collectedDate])
   @@index([importId])
+  @@index([fhirSyncStatus])
+  @@index([source])
 }

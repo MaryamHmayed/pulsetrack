@@ -13,7 +13,7 @@ export type TimeSeriesGeometry = {
   points: Array<TimeSeriesDatum & { x: number; y: number }>;
   xTicks: Array<{ date: Date; x: number }>;
   yTicks: Array<{ value: number; y: number }>;
-  referenceBand: { top: number; bottom: number };
+  referenceBand: { top: number; bottom: number } | null;
 };
 
 type ChartDimensions = {
@@ -61,8 +61,8 @@ function uniqueDates(dates: Date[]) {
 
 export function buildTimeSeriesGeometry(
   data: TimeSeriesDatum[],
-  referenceLow: number,
-  referenceHigh: number,
+  referenceLow: number | null,
+  referenceHigh: number | null,
   dimensions: ChartDimensions = defaultDimensions,
 ): TimeSeriesGeometry {
   if (data.length === 0) {
@@ -74,10 +74,14 @@ export function buildTimeSeriesGeometry(
   );
   const minDateMs = sortedData[0].date.getTime();
   const maxDateMs = sortedData.at(-1)!.date.getTime();
-  const rawMin = Math.min(referenceLow, ...sortedData.map(({ value }) => value));
+  const hasReferenceRange =
+    referenceLow !== null && referenceHigh !== null;
+  const values = sortedData.map(({ value }) => value);
+  const rawMin = Math.min(
+    ...(hasReferenceRange ? [referenceLow, ...values] : values),
+  );
   const rawMax = Math.max(
-    referenceHigh,
-    ...sortedData.map(({ value }) => value),
+    ...(hasReferenceRange ? [referenceHigh, ...values] : values),
   );
   const rawRange = rawMax - rawMin || Math.max(Math.abs(rawMax) * 0.2, 1);
   const step = niceStep(rawRange * 1.2);
@@ -133,9 +137,11 @@ export function buildTimeSeriesGeometry(
     })),
     xTicks: xTickDates.map((date) => ({ date, x: xForDate(date) })),
     yTicks,
-    referenceBand: {
-      top: yForValue(referenceHigh),
-      bottom: yForValue(referenceLow),
-    },
+    referenceBand: hasReferenceRange
+      ? {
+          top: yForValue(referenceHigh),
+          bottom: yForValue(referenceLow),
+        }
+      : null,
   };
 }

@@ -10,6 +10,7 @@ import {
   isValidAssessmentToken,
 } from "@/lib/assessment/token";
 import {
+  EmailDeliveryError,
   getApplicationUrl,
   getAssessmentDeliveryMode,
   sendAssessmentEmail,
@@ -53,6 +54,12 @@ export async function issueAssessment(patientId: string) {
 
   if (!patient) {
     return { kind: "NOT_FOUND" as const };
+  }
+
+  if (!patient.email) {
+    throw new EmailDeliveryError(
+      "Add an email address to this patient before sending an assessment.",
+    );
   }
 
   const token = createAssessmentToken();

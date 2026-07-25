@@ -30,12 +30,14 @@ const labRangeStyles = {
   LOW: "bg-blue-50 text-blue-700",
   NORMAL: "bg-emerald-50 text-emerald-700",
   HIGH: "bg-red-50 text-red-700",
+  UNKNOWN: "bg-slate-100 text-slate-600",
 } as const;
 
 const labRangeLabels = {
   LOW: "Low",
   NORMAL: "Within range",
   HIGH: "High",
+  UNKNOWN: "Range unavailable",
 } as const;
 
 function getAge(dob: Date) {
@@ -134,13 +136,17 @@ export default async function PatientPage({
             <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Email
             </dt>
-            <dd className="mt-2 break-all font-medium">{patient.email}</dd>
+            <dd className="mt-2 break-all font-medium">
+              {patient.email ?? "Not provided"}
+            </dd>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Phone
             </dt>
-            <dd className="mt-2 font-medium">{patient.phone}</dd>
+            <dd className="mt-2 font-medium">
+              {patient.phone ?? "Not provided"}
+            </dd>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -265,10 +271,12 @@ export default async function PatientPage({
                           >
                             {labRangeLabels[result.rangeStatus]}
                           </span>
-                          <span className="mt-1 block text-xs text-slate-500">
-                            {result.refLowText}–{result.refHighText}{" "}
-                            {result.unit}
-                          </span>
+                          {result.refLowText && result.refHighText ? (
+                            <span className="mt-1 block text-xs text-slate-500">
+                              {result.refLowText}–{result.refHighText}{" "}
+                              {result.unit}
+                            </span>
+                          ) : null}
                         </td>
                       </tr>
                     ))}

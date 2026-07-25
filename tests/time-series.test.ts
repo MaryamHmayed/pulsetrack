@@ -44,3 +44,18 @@ test("centers a single result and emits one date tick", () => {
   assert.equal(geometry.points[0].x, 337);
   assert.equal(geometry.xTicks.length, 1);
 });
+
+test("builds a data-only domain when no reference range is available", () => {
+  const geometry = buildTimeSeriesGeometry(
+    [
+      { date: new Date("2026-01-01T00:00:00.000Z"), value: 90 },
+      { date: new Date("2026-02-01T00:00:00.000Z"), value: 110 },
+    ],
+    null,
+    null,
+  );
+
+  assert.ok(geometry.domain.minValue <= 90);
+  assert.ok(geometry.domain.maxValue >= 110);
+  assert.equal(geometry.referenceBand, null);
+});

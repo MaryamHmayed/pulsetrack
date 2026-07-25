@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "LabResult" ALTER COLUMN "refLow" DROP NOT NULL,
+ALTER COLUMN "refHigh" DROP NOT NULL;
+
+-- AlterTable
+ALTER TABLE "Patient" ALTER COLUMN "email" DROP NOT NULL,
+ALTER COLUMN "phone" DROP NOT NULL;

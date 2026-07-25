@@ -10,8 +10,8 @@ type PatientListItem = {
   dob: string;
   sex: string;
   mrn: string;
-  email: string;
-  phone: string;
+  email: string | null;
+  phone: string | null;
 };
 
 export function PatientList({ patients }: { patients: PatientListItem[] }) {
@@ -26,8 +26,8 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
       [
         patient.fullName,
         patient.mrn,
-        patient.email,
-        patient.phone,
+        patient.email ?? "",
+        patient.phone ?? "",
       ].some((value) => value.toLocaleLowerCase().includes(normalizedSearch)),
     );
   }, [normalizedSearch, patients]);
@@ -134,9 +134,11 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
                           {patient.dob}
                         </td>
                         <td className="px-5 py-4">
-                          <p className="text-slate-700">{patient.email}</p>
+                          <p className="text-slate-700">
+                            {patient.email ?? "Email not provided"}
+                          </p>
                           <p className="mt-1 text-xs text-slate-500">
-                            {patient.phone}
+                            {patient.phone ?? "Phone not provided"}
                           </p>
                         </td>
                         <td className="px-5 py-4 text-right">
@@ -163,7 +165,7 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
                           {patient.mrn}
                         </p>
                         <p className="mt-3 truncate text-sm text-slate-600">
-                          {patient.email}
+                          {patient.email ?? "Email not provided"}
                         </p>
                       </div>
                       <Link
