@@ -17,6 +17,7 @@ export default async function EditPatientPage({
   }
 
   const action = updatePatientAction.bind(null, patient.id);
+  const isReadOnlyFhirPatient = patient.fhirOwnership === "READ_ONLY";
 
   return (
     <main className="app-page max-w-3xl">
@@ -32,12 +33,19 @@ export default async function EditPatientPage({
             Patient record
           </p>
           <h1 className="app-title mt-2">
-            Edit {patient.fullName}
+            Edit local record for {patient.fullName}
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Changes are validated on the server before being saved.
+            Changes are validated on the server before being saved locally.
           </p>
         </div>
+        {isReadOnlyFhirPatient ? (
+          <div className="mb-8 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">
+            This patient was imported from the shared FHIR server. You can add
+            local contact details and correct local demographics, but the
+            linked FHIR Patient remains unchanged and its MRN is locked.
+          </div>
+        ) : null}
         <PatientForm
           action={action}
           cancelHref={`/patients/${patient.id}`}
@@ -49,6 +57,7 @@ export default async function EditPatientPage({
             email: patient.email ?? "",
             phone: patient.phone ?? "",
           }}
+          lockMrn={isReadOnlyFhirPatient}
           submitLabel="Save changes"
         />
       </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/app/ui/icons";
 import { listPatients } from "@/lib/data/patients";
 import { PatientList } from "./patient-list";
+import { FhirHistoricalImport } from "./fhir-historical-import";
 
 export default async function PatientsPage() {
   const patients = await listPatients("");
@@ -26,6 +27,8 @@ export default async function PatientsPage() {
           Add patient
         </Link>
       </div>
+
+      <FhirHistoricalImport />
 
       <PatientList
         patients={patients.map((patient) => ({

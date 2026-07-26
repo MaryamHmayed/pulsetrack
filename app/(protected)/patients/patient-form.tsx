@@ -16,6 +16,7 @@ type PatientFormProps = {
   initialValues?: PatientFormValues;
   submitLabel: string;
   cancelHref: string;
+  lockMrn?: boolean;
 };
 
 const emptyValues: PatientFormValues = {
@@ -52,6 +53,7 @@ export function PatientForm({
   initialValues = emptyValues,
   submitLabel,
   cancelHref,
+  lockMrn = false,
 }: PatientFormProps) {
   const [state, formAction, pending] = useActionState(action, {
     values: initialValues,
@@ -130,15 +132,20 @@ export function PatientForm({
             aria-describedby={state.errors?.mrn ? "mrn-error" : "mrn-help"}
             aria-invalid={Boolean(state.errors?.mrn)}
             autoCapitalize="characters"
-            className="field-control w-full font-mono uppercase"
+            className={`field-control w-full font-mono uppercase ${
+              lockMrn ? "cursor-not-allowed bg-slate-100 text-slate-600" : ""
+            }`}
             defaultValue={values.mrn}
             id="mrn"
             maxLength={32}
             name="mrn"
+            readOnly={lockMrn}
             required
           />
           <p className="mt-2 text-xs text-slate-500" id="mrn-help">
-            Uppercase letters, numbers, and hyphens only.
+            {lockMrn
+              ? "Locked because this MRN identifies the linked read-only FHIR Patient."
+              : "Uppercase letters, numbers, and hyphens only."}
           </p>
           <FieldError errors={state.errors?.mrn} id="mrn-error" />
         </div>

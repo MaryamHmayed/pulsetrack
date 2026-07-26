@@ -91,6 +91,7 @@ export async function updatePatient(
         },
         select: {
           id: true,
+          mrn: true,
           fhirOwnership: true,
         },
       });
@@ -103,6 +104,8 @@ export async function updatePatient(
         where: { id: current.id },
         data: {
           ...input,
+          mrn:
+            current.fhirOwnership === "READ_ONLY" ? current.mrn : input.mrn,
           ...(current.fhirOwnership === "READ_ONLY"
             ? {}
             : {

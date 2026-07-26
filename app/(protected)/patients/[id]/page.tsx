@@ -144,7 +144,9 @@ export default async function PatientPage({
               className="button-secondary min-h-10 px-4 py-2"
               href={`/patients/${patient.id}/edit`}
             >
-              Edit patient
+              {patient.fhirOwnership === "READ_ONLY"
+                ? "Edit local record"
+                : "Edit patient"}
             </Link>
             <DeletePatientButton
               patientId={patient.id}
@@ -168,8 +170,9 @@ export default async function PatientPage({
           </div>
         ) : patient.fhirSyncStatus === "READ_ONLY" ? (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            This MRN is linked to an existing read-only FHIR Patient. Local
-            changes will not overwrite that external record.
+            Imported from the shared FHIR server. You may maintain local
+            contact details and demographics, but this app cannot overwrite
+            the external Patient resource.
           </div>
         ) : null}
 
