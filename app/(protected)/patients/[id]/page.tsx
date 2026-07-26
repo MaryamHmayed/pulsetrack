@@ -40,6 +40,20 @@ const labRangeLabels = {
   UNKNOWN: "Range unavailable",
 } as const;
 
+const fhirSyncStyles = {
+  PENDING: "bg-amber-50 text-amber-800",
+  SYNCED: "bg-teal-50 text-teal-800",
+  FAILED: "bg-red-50 text-red-700",
+  READ_ONLY: "bg-slate-100 text-slate-700",
+} as const;
+
+const fhirSyncLabels = {
+  PENDING: "FHIR pending",
+  SYNCED: "FHIR synced",
+  FAILED: "FHIR failed",
+  READ_ONLY: "FHIR read-only",
+} as const;
+
 function getAge(dob: Date) {
   const today = new Date();
   let age = today.getUTCFullYear() - dob.getUTCFullYear();
@@ -102,7 +116,14 @@ export default async function PatientPage({
       <section className="app-card mt-6 overflow-hidden p-6 sm:p-8">
         <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
           <div>
-            <p className="font-mono text-sm text-slate-500">{patient.mrn}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="font-mono text-sm text-slate-500">{patient.mrn}</p>
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${fhirSyncStyles[patient.fhirSyncStatus]}`}
+              >
+                {fhirSyncLabels[patient.fhirSyncStatus]}
+              </span>
+            </div>
             <h1 className="app-title mt-2">
               {patient.fullName}
             </h1>
@@ -124,6 +145,26 @@ export default async function PatientPage({
             />
           </div>
         </div>
+
+        {patient.fhirSyncStatus === "FAILED" ? (
+          <div
+            className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            role="alert"
+          >
+            <p className="font-semibold">
+              Patient saved locally, but FHIR synchronization failed.
+            </p>
+            <p className="mt-1">
+              {patient.fhirLastError ??
+                "The external health platform could not be reached."}
+            </p>
+          </div>
+        ) : patient.fhirSyncStatus === "READ_ONLY" ? (
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            This MRN is linked to an existing read-only FHIR Patient. Local
+            changes will not overwrite that external record.
+          </div>
+        ) : null}
 
         <dl className="mt-8 grid gap-6 border-t border-slate-200 pt-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>

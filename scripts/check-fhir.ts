@@ -8,7 +8,8 @@ import {
   createFhirTransport,
   FhirRequestError,
 } from "../lib/fhir/transport";
-import type { FhirResource } from "../lib/fhir/types";
+import { FHIR_MRN_SYSTEM } from "../lib/fhir/mapping";
+import type { FhirPatient, FhirResource } from "../lib/fhir/types";
 
 type CapabilityStatement = FhirResource & {
   resourceType: "CapabilityStatement";
@@ -38,6 +39,29 @@ async function main() {
     : "";
 
   console.log(`FHIR connection successful${version}.`);
+
+  const mrn = process.argv[2]?.trim().toUpperCase();
+
+  if (mrn) {
+    const search = new URLSearchParams({
+      identifier: `${FHIR_MRN_SYSTEM}|${mrn}`,
+    });
+    const patients = await transport.searchAll<FhirPatient>(
+      `Patient?${search.toString()}`,
+    );
+
+    if (patients.length === 0) {
+      console.log(`No FHIR Patient found for MRN ${mrn}.`);
+      process.exitCode = 1;
+      return;
+    }
+
+    console.log(
+      `Found ${patients.length} FHIR Patient resource(s) for MRN ${mrn}: ${patients
+        .map((patient) => patient.id ?? "missing-id")
+        .join(", ")}.`,
+    );
+  }
 }
 
 main().catch((error: unknown) => {

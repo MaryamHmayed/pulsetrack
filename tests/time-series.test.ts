@@ -31,7 +31,9 @@ test("includes results and the reference range in the y domain", () => {
 
   assert.ok(geometry.domain.minValue <= 60);
   assert.ok(geometry.domain.maxValue >= 110);
-  assert.ok(geometry.referenceBand.top < geometry.referenceBand.bottom);
+  const referenceBand = geometry.referenceBand;
+  assert.ok(referenceBand);
+  assert.ok(referenceBand.top < referenceBand.bottom);
 });
 
 test("centers a single result and emits one date tick", () => {

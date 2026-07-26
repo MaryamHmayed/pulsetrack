@@ -1,6 +1,9 @@
 export type FhirResource = {
   resourceType: string;
   id?: string;
+  meta?: {
+    tag?: FhirCoding[];
+  };
 };
 
 export type FhirOperationOutcome = FhirResource & {

@@ -1,0 +1,46 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { FhirRequestError } from "@/lib/fhir/transport";
+import {
+  FHIR_CANDIDATE_TAG_SYSTEM,
+  isCandidateOwnedResource,
+  patientCreateCondition,
+  safeFhirSyncError,
+} from "@/lib/fhir/sync-values";
+
+test("builds the conditional Patient create expression from the MRN", () => {
+  assert.equal(
+    patientCreateCondition("MRN-1001"),
+    "identifier=https://challenge.capadev.dev/mrn|MRN-1001",
+  );
+});
+
+test("recognizes only the configured candidate ownership tag", () => {
+  const resource = {
+    resourceType: "Patient",
+    meta: {
+      tag: [
+        {
+          system: FHIR_CANDIDATE_TAG_SYSTEM,
+          code: "candidate-1",
+        },
+      ],
+    },
+  };
+
+  assert.equal(isCandidateOwnedResource(resource, "candidate-1"), true);
+  assert.equal(isCandidateOwnedResource(resource, "candidate-2"), false);
+});
+
+test("surfaces bounded known FHIR errors and hides unknown failures", () => {
+  const known = safeFhirSyncError(
+    new FhirRequestError(`FHIR unavailable. ${"x".repeat(600)}`),
+  );
+
+  assert.equal(known.length, 500);
+  assert.match(known, /^FHIR unavailable\./);
+  assert.equal(
+    safeFhirSyncError(new Error("database-password")),
+    "FHIR synchronization failed unexpectedly.",
+  );
+});

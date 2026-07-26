@@ -12,6 +12,7 @@ import {
   validatePatientForm,
   type PatientFormState,
 } from "@/lib/validation/patient";
+import { syncCreatedPatientToFhir } from "@/lib/fhir/patient-sync";
 
 function isUniqueConstraintError(error: unknown) {
   return (
@@ -42,6 +43,10 @@ export async function createPatientAction(
   try {
     const patient = await createPatientRecord(result.data);
     patientId = patient.id;
+    await syncCreatedPatientToFhir({
+      ...patient,
+      sex: result.data.sex,
+    }).catch(() => undefined);
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       return {

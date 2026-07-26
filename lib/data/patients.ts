@@ -12,6 +12,11 @@ const patientSummarySelect = {
   mrn: true,
   email: true,
   phone: true,
+  fhirResourceId: true,
+  fhirOwnership: true,
+  fhirSyncStatus: true,
+  fhirLastSyncedAt: true,
+  fhirLastError: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -59,7 +64,15 @@ export async function createPatient(input: ValidPatientInput) {
       ...input,
       clinicianId: clinician.id,
     },
-    select: { id: true },
+    select: {
+      id: true,
+      fullName: true,
+      dob: true,
+      sex: true,
+      mrn: true,
+      email: true,
+      phone: true,
+    },
   });
 }
 
