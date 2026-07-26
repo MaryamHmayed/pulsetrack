@@ -7,23 +7,35 @@ import { formatDateTimeUtc } from "@/lib/format/date";
 const riskBandDisplay = {
   LOW: {
     label: "Low risk",
-    bar: "bg-emerald-500",
     dot: "bg-emerald-500",
+    color: "#10b981",
+    surface: "bg-emerald-50/80",
+    border: "border-emerald-200/80",
+    text: "text-emerald-800",
   },
   MODERATE: {
     label: "Moderate risk",
-    bar: "bg-yellow-400",
     dot: "bg-yellow-400",
+    color: "#eab308",
+    surface: "bg-yellow-50/80",
+    border: "border-yellow-200/80",
+    text: "text-yellow-800",
   },
   HIGH: {
     label: "High risk",
-    bar: "bg-orange-500",
     dot: "bg-orange-500",
+    color: "#f97316",
+    surface: "bg-orange-50/80",
+    border: "border-orange-200/80",
+    text: "text-orange-800",
   },
   VERY_HIGH: {
     label: "Very high risk",
-    bar: "bg-red-500",
     dot: "bg-red-500",
+    color: "#ef4444",
+    surface: "bg-red-50/80",
+    border: "border-red-200/80",
+    text: "text-red-800",
   },
 } as const;
 
@@ -53,6 +65,23 @@ export default async function DashboardPage({
       ([riskBand, count]) => `${riskBandDisplay[riskBand].label}: ${count}`,
     )
     .join(", ");
+  let riskOffset = 0;
+  const riskGradientStops = riskEntries.flatMap(([riskBand, count]) => {
+    if (count === 0 || metrics.patientsWithRiskScore === 0) {
+      return [];
+    }
+
+    const start = riskOffset;
+    riskOffset += (count / metrics.patientsWithRiskScore) * 100;
+
+    return [
+      `${riskBandDisplay[riskBand].color} ${start}% ${riskOffset}%`,
+    ];
+  });
+  const riskChartBackground =
+    riskGradientStops.length > 0
+      ? `conic-gradient(${riskGradientStops.join(", ")})`
+      : "#e2e8f0";
 
   return (
     <main className="app-page">
@@ -81,79 +110,129 @@ export default async function DashboardPage({
         aria-label="Clinic summary"
         className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
-        <article className="app-card flex min-h-44 flex-col p-5">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-600">Total patients</p>
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-[#e2f6f7] text-[#087f8a]">
-              <Icon className="h-5 w-5" name="patients" />
+        <article className="app-card group relative flex min-h-48 flex-col overflow-hidden border-cyan-200/80 bg-gradient-to-br from-white via-cyan-50/80 to-teal-100/70 p-5 shadow-[0_16px_40px_rgba(8,127,138,0.10)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_rgba(8,127,138,0.16)]">
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-500 to-teal-500"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-cyan-300/30 blur-2xl"
+          />
+          <div className="relative flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-cyan-950/75">
+              Total patients
+            </p>
+            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-white/80 bg-white/75 text-cyan-700 shadow-sm backdrop-blur">
+              <Icon className="h-[22px] w-[22px]" name="patients" />
             </span>
           </div>
-          <p className="mt-3 text-3xl font-bold text-[#073a5a]">{metrics.totalPatients}</p>
+          <p className="relative mt-4 text-4xl font-bold tracking-[-0.04em] text-[#073a5a]">
+            {metrics.totalPatients}
+          </p>
           <Link
-            className="mt-auto inline-flex items-center gap-1 pt-4 text-sm font-semibold text-teal-700 hover:text-teal-800"
+            className="relative mt-auto inline-flex items-center gap-1.5 pt-4 text-sm font-semibold text-teal-800 transition group-hover:gap-2.5"
             href="/patients"
           >
-            View patients →
+            View patients
+            <Icon className="h-4 w-4" name="arrow-right" />
           </Link>
         </article>
 
-        <article className="app-card flex min-h-44 flex-col p-5">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-600">
+        <article className="app-card group relative flex min-h-48 flex-col overflow-hidden border-sky-200/80 bg-gradient-to-br from-white via-sky-50/80 to-blue-100/70 p-5 shadow-[0_16px_40px_rgba(14,116,144,0.09)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_rgba(14,116,144,0.15)]">
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 to-blue-500"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-sky-300/30 blur-2xl"
+          />
+          <div className="relative flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-sky-950/75">
               Assessment completion
             </p>
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-[#e2f6f7] text-[#087f8a]">
-              <Icon className="h-5 w-5" name="clipboard" />
+            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-white/80 bg-white/75 text-sky-700 shadow-sm backdrop-blur">
+              <Icon className="h-[22px] w-[22px]" name="clipboard" />
             </span>
           </div>
-          <p className="mt-3 text-3xl font-bold text-[#073a5a]">
+          <p className="relative mt-4 text-4xl font-bold tracking-[-0.04em] text-[#073a5a]">
             {metrics.completionRate}
-            <span className="text-lg font-semibold text-slate-500">%</span>
+            <span className="ml-0.5 text-xl font-semibold text-sky-700/70">
+              %
+            </span>
           </p>
-          <p className="mt-auto pt-4 text-sm text-slate-500">
-            {metrics.totalAssessments === 0
-              ? "No assessments sent yet"
-              : `${metrics.completedAssessments} of ${metrics.totalAssessments} sent assessments completed`}
-          </p>
+          <div className="relative mt-auto pt-4">
+            <div
+              aria-hidden="true"
+              className="h-2 overflow-hidden rounded-full bg-white/80 shadow-inner"
+            >
+              <span
+                className="block h-full rounded-full bg-gradient-to-r from-sky-500 to-blue-500"
+                style={{ width: `${metrics.completionRate}%` }}
+              />
+            </div>
+            <p className="mt-2.5 text-sm text-sky-950/60">
+              {metrics.totalAssessments === 0
+                ? "No assessments sent yet"
+                : `${metrics.completedAssessments} of ${metrics.totalAssessments} assessments completed`}
+            </p>
+          </div>
         </article>
 
-        <article className="app-card flex min-h-44 flex-col p-5">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-600">
+        <article className="app-card group relative flex min-h-48 flex-col overflow-hidden border-emerald-200/80 bg-gradient-to-br from-white via-emerald-50/80 to-green-100/70 p-5 shadow-[0_16px_40px_rgba(5,150,105,0.09)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_rgba(5,150,105,0.15)]">
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 to-green-500"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-emerald-300/30 blur-2xl"
+          />
+          <div className="relative flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-emerald-950/75">
               Completed assessments
             </p>
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-[#e2f6f7] text-[#087f8a]">
-              <Icon className="h-5 w-5" name="check" />
+            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-white/80 bg-white/75 text-emerald-700 shadow-sm backdrop-blur">
+              <Icon className="h-[22px] w-[22px]" name="check" />
             </span>
           </div>
-          <p className="mt-3 text-3xl font-bold text-[#073a5a]">
+          <p className="relative mt-4 text-4xl font-bold tracking-[-0.04em] text-[#073a5a]">
             {metrics.completedAssessments}
           </p>
-          <p className="mt-auto pt-4 text-sm text-slate-500">
+          <p className="relative mt-auto pt-4 text-sm text-emerald-950/60">
             Across {metrics.patientsWithRiskScore}{" "}
             {metrics.patientsWithRiskScore === 1 ? "patient" : "patients"}
           </p>
         </article>
 
-        <article className="app-card flex min-h-44 flex-col p-5">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-600">
+        <article className="app-card group relative flex min-h-48 flex-col overflow-hidden border-amber-200/80 bg-gradient-to-br from-white via-amber-50/80 to-orange-100/70 p-5 shadow-[0_16px_40px_rgba(217,119,6,0.09)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_rgba(217,119,6,0.15)]">
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-amber-300/35 blur-2xl"
+          />
+          <div className="relative flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-amber-950/75">
               Awaiting risk score
             </p>
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-[#e2f6f7] text-[#087f8a]">
-              <Icon className="h-5 w-5" name="calendar" />
+            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-white/80 bg-white/75 text-amber-700 shadow-sm backdrop-blur">
+              <Icon className="h-[22px] w-[22px]" name="calendar" />
             </span>
           </div>
-          <p className="mt-3 text-3xl font-bold text-[#073a5a]">
+          <p className="relative mt-4 text-4xl font-bold tracking-[-0.04em] text-[#073a5a]">
             {metrics.patientsWithoutRiskScore}
           </p>
-          <p className="mt-auto pt-4 text-sm text-slate-500">
+          <p className="relative mt-auto pt-4 text-sm text-amber-950/60">
             Patients without a completed DSMA-8
           </p>
         </article>
       </section>
 
-      <section className="app-card mt-6 p-5 sm:p-6">
+      <section className="app-card mt-6 overflow-hidden border-slate-200/80 bg-gradient-to-br from-white via-white to-cyan-50/50 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold">Patients by latest risk band</h2>
@@ -181,43 +260,72 @@ export default async function DashboardPage({
             </p>
           </div>
         ) : (
-          <>
+          <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.4fr)] lg:items-center">
             <div
               aria-label={`Risk distribution across ${metrics.patientsWithRiskScore} patients. ${riskSummary}`}
-              className="mt-7 flex h-4 overflow-hidden rounded-full bg-slate-100"
+              className="mx-auto grid aspect-square w-48 shrink-0 place-items-center rounded-full p-4 shadow-[0_20px_45px_rgba(7,58,90,0.14)] sm:w-56"
               role="img"
+              style={{ background: riskChartBackground }}
             >
-              {riskEntries.map(([riskBand, count]) =>
-                count > 0 ? (
-                  <span
-                    aria-hidden="true"
-                    className={riskBandDisplay[riskBand].bar}
-                    key={riskBand}
-                    style={{
-                      width: `${(count / metrics.patientsWithRiskScore) * 100}%`,
-                    }}
-                  />
-                ) : null,
-              )}
-            </div>
-            <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {riskEntries.map(([riskBand, count]) => (
-                <li
-                  className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3"
-                  key={riskBand}
-                >
-                  <span className="inline-flex items-center gap-2 text-sm text-slate-600">
-                    <span
-                      aria-hidden="true"
-                      className={`h-2.5 w-2.5 rounded-full ${riskBandDisplay[riskBand].dot}`}
-                    />
-                    {riskBandDisplay[riskBand].label}
+              <div className="grid h-full w-full place-items-center rounded-full border border-white/90 bg-white text-center shadow-inner">
+                <div>
+                  <span className="block text-4xl font-bold tracking-[-0.04em] text-[#073a5a]">
+                    {metrics.patientsWithRiskScore}
                   </span>
-                  <span className="font-bold">{count}</span>
-                </li>
-              ))}
+                  <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Scored patients
+                  </span>
+                </div>
+              </div>
+            </div>
+            <ul className="grid min-w-0 gap-3 sm:grid-cols-2">
+              {riskEntries.map(([riskBand, count]) => {
+                const percentage = Math.round(
+                  (count / metrics.patientsWithRiskScore) * 100,
+                );
+                const display = riskBandDisplay[riskBand];
+
+                return (
+                  <li
+                    className={`rounded-2xl border p-4 ${display.surface} ${display.border}`}
+                    key={riskBand}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span
+                        className={`inline-flex min-w-0 items-center gap-2 text-sm font-semibold ${display.text}`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`h-2.5 w-2.5 shrink-0 rounded-full ${display.dot}`}
+                        />
+                        <span className="truncate">{display.label}</span>
+                      </span>
+                      <span className="text-lg font-bold text-[#073a5a]">
+                        {count}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center gap-3">
+                      <div
+                        aria-hidden="true"
+                        className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-white/90 shadow-inner"
+                      >
+                        <span
+                          className="block h-full rounded-full"
+                          style={{
+                            backgroundColor: display.color,
+                            width: `${percentage}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="w-10 text-right text-xs font-semibold text-slate-500">
+                        {percentage}%
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
-          </>
+          </div>
         )}
       </section>
 

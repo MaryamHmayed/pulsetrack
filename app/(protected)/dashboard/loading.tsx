@@ -7,6 +7,13 @@ function SkeletonBlock({ className }: { className: string }) {
   );
 }
 
+const summarySkeletonStyles = [
+  "border-cyan-200/80 bg-gradient-to-br from-white to-teal-100/70",
+  "border-sky-200/80 bg-gradient-to-br from-white to-blue-100/70",
+  "border-emerald-200/80 bg-gradient-to-br from-white to-green-100/70",
+  "border-amber-200/80 bg-gradient-to-br from-white to-orange-100/70",
+] as const;
+
 export default function DashboardLoading() {
   return (
     <main
@@ -33,7 +40,7 @@ export default function DashboardLoading() {
       >
         {Array.from({ length: 4 }, (_, index) => (
           <div
-            className="app-card p-5"
+            className={`app-card min-h-48 p-5 ${summarySkeletonStyles[index] ?? summarySkeletonStyles[0]}`}
             key={index}
           >
             <SkeletonBlock className="h-4 w-36" />
@@ -49,11 +56,13 @@ export default function DashboardLoading() {
       >
         <SkeletonBlock className="h-6 w-64 max-w-full" />
         <SkeletonBlock className="mt-3 h-4 w-96 max-w-full" />
-        <SkeletonBlock className="mt-8 h-4 w-full rounded-full" />
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }, (_, index) => (
-            <SkeletonBlock className="h-12 w-full" key={index} />
-          ))}
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,1.4fr)] lg:items-center">
+          <SkeletonBlock className="mx-auto aspect-square w-48 rounded-full sm:w-56" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            {Array.from({ length: 4 }, (_, index) => (
+              <SkeletonBlock className="h-20 w-full rounded-2xl" key={index} />
+            ))}
+          </div>
         </div>
       </section>
 
