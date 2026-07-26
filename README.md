@@ -5,8 +5,8 @@ clinic. Clinicians can manage patients, email the DSMA-8 self-assessment,
 import lab results from CSV, and monitor clinical activity through clinic and
 patient dashboards.
 
-This repository contains the completed **Tier 1** scope of the Capadev
-Software Engineer Challenge.
+This repository contains the completed **Tier 1 and Tier 2** scope of the
+Capadev Software Engineer Challenge.
 
 - Repository: [github.com/MaryamHmayed/pulsetrack](https://github.com/MaryamHmayed/pulsetrack)
 - Live application: [pulsetrack-seven.vercel.app](https://pulsetrack-seven.vercel.app)
@@ -33,6 +33,17 @@ Only fabricated patient and clinical data should be used with this application.
 | Patient dashboard | Glucose and HbA1c time-series charts with reference ranges, lab history, and assessment-score history |
 | Clinic dashboard | Aggregate counts, completion rate, latest patient risk-band distribution, recent imports, and an upload-date filter |
 | UX states | Responsive layouts plus intentional loading, empty, validation, and error states |
+
+## Tier 2 FHIR coverage
+
+| Requirement | Implementation |
+| --- | --- |
+| Patient push | Local patient creation uses an idempotent conditional `Patient` create; later edits update the specific candidate-owned FHIR resource |
+| Observation push | Every accepted local CSV row is mapped to a LOINC-coded `Observation` linked to the patient's FHIR resource |
+| Historical pull | One clinician action imports the five supplied MRNs and their 180 historical observations into the existing patient dashboards |
+| Idempotency | Conditional creates, stored FHIR resource IDs, database uniqueness constraints, and import matching prevent duplicate patients and observations |
+| External API handling | Server-only API-key authentication, ten-second request timeouts, bounded retries, `Retry-After` support, safe pagination, validated FHIR responses, and visible per-resource failure states |
+| Shared-server isolation | Candidate-owned resources may be updated; imported seed resources are marked read-only and never written back |
 
 ## Technology
 
@@ -71,6 +82,9 @@ EMAIL_DELIVERY_MODE="resend"
 APP_URL="http://localhost:3000"
 RESEND_API_KEY="re_your_key"
 EMAIL_FROM="PulseTrack <onboarding@resend.dev>"
+FHIR_BASE_URL="https://fhir-challenge.vihagent.net/fhir"
+FHIR_CANDIDATE_ID="cand-your-id"
+FHIR_API_KEY="your-personal-api-key"
 ```
 
 | Variable | Purpose |
@@ -80,13 +94,17 @@ EMAIL_FROM="PulseTrack <onboarding@resend.dev>"
 | `APP_URL` | Origin placed in assessment links; must be the deployed HTTPS URL in production |
 | `RESEND_API_KEY` | Server-only Resend credential |
 | `EMAIL_FROM` | Sender accepted by Resend |
+| `FHIR_BASE_URL` | HTTPS base URL of the HAPI FHIR R4 server |
+| `FHIR_CANDIDATE_ID` | Candidate ownership tag issued with the challenge |
+| `FHIR_API_KEY` | Personal server-only credential sent as `X-API-Key` |
 
 `onboarding@resend.dev` is Resend's testing sender and can deliver only to the
 email address associated with the Resend account. To test with it, update a
 fabricated patient's email in PulseTrack to that address. A verified sender
 domain is required to deliver to arbitrary recipients.
 
-Never commit `.env` or expose `RESEND_API_KEY` to browser code.
+Never commit `.env` or expose `RESEND_API_KEY` or `FHIR_API_KEY` to browser
+code.
 
 ### 3. Prepare the database and start the app
 
@@ -102,6 +120,12 @@ clinician above.
 
 The seed is idempotent: it upserts the test clinician and three fabricated
 patients instead of creating duplicates.
+
+Confirm the configured FHIR connection before testing synchronization:
+
+```bash
+npm run fhir:check
+```
 
 ### Optional local email preview
 
@@ -126,7 +150,9 @@ npm run build
 The automated tests cover assessment-token security, DSMA-8 scoring
 boundaries, patient validation, CSV parsing and row validation, lab export
 safety, date ranges, chart calculations, dashboard metrics, email-mode
-restrictions, and bounded provider errors.
+restrictions, FHIR configuration and mappings, authenticated transport,
+pagination, retries, ownership checks, historical-resource selection,
+idempotency helpers, and bounded provider errors.
 
 ## Reviewer walkthrough
 
@@ -144,6 +170,45 @@ restrictions, and bounded provider errors.
 8. Review the imported results and trend charts on the matching patient, then
    download that patient's accepted results as CSV.
 9. Review clinic metrics and filter recent uploads by date.
+10. Create a new patient and confirm its badge changes to **FHIR synced**.
+    Edit it and confirm the same FHIR resource is updated.
+11. Upload a new lab row for that patient and confirm its Observation badge is
+    **Synced**. Re-upload the row to confirm duplicate rejection.
+12. On **Patients**, select **Import FHIR history**. Confirm five read-only
+    patients and 180 observations appear in the patient and clinic dashboards.
+    Run the import again and confirm that it creates nothing twice.
+
+## FHIR synchronization
+
+PulseTrack implements the required subset of FHIR R4: `Patient`,
+`Observation`, and search `Bundle` pagination.
+
+- Reference: [FHIR R4 Patient](https://hl7.org/fhir/R4/patient.html),
+  [Observation](https://hl7.org/fhir/R4/observation.html), and
+  [Search](https://hl7.org/fhir/R4/search.html).
+- MRNs use the identifier system
+  `https://challenge.capadev.dev/mrn`.
+- Local test codes map to LOINC: `GLU-F` to `1558-6`, `HBA1C` to `4548-4`,
+  and `SBP` to `8480-6`.
+- Observation values use UCUM quantities and reference the remote patient as
+  `Patient/<id>`.
+- Patient creation uses `POST Patient` with `If-None-Exist` on the MRN.
+  Candidate-owned updates use `PUT Patient/<id>`.
+- Observation creation uses `If-None-Exist` with a stable identifier derived
+  from the local lab-result ID.
+- Historical import searches MRNs `MRN-2001` through `MRN-2005`, follows every
+  safe same-origin `next` link, and requires the expected 36 seed observations
+  per patient before writing locally.
+- Imported seed patients and observations retain their remote resource IDs
+  and are marked `READ_ONLY`. Clinicians may maintain local contact details,
+  but PulseTrack never sends those local edits back to a seed resource.
+
+Every request sends `X-API-Key` and requests FHIR JSON. The transport times out
+after ten seconds and makes up to three attempts for connection failures,
+`429`, `502`, `503`, and `504` responses. It honors bounded `Retry-After`
+values and otherwise uses exponential backoff. Safe, bounded
+`OperationOutcome` diagnostics are stored for failed local resources and shown
+to the clinician; credentials and request bodies are not logged.
 
 ## CSV contract
 
@@ -196,34 +261,46 @@ is not retained.
 Resend requests use the assessment ID as an idempotency key and the returned
 provider ID is retained for delivery auditing.
 
-## Architecture
+## Architecture and FHIR integration diagram
 
 ```mermaid
 flowchart LR
     C[Clinician browser]
     P[Patient browser]
-    N[Next.js App Router]
-    S[Server Components and Server Actions]
-    D[Authentication and domain services]
-    O[Prisma Client with PostgreSQL adapter]
+
+    subgraph PT[PulseTrack on Vercel]
+        N[Next.js App Router]
+        S[Server Components and Server Actions]
+        D[Authenticated domain services]
+        F[FHIR R4 client and mappers]
+        O[Prisma Client and PostgreSQL adapter]
+    end
+
     DB[(PostgreSQL)]
     R[Resend API]
+    H[Shared HAPI FHIR R4 server]
 
-    C -->|HTTPS, session cookie| N
-    P -->|HTTPS, single-use token| N
+    C -->|HTTPS and session cookie| N
+    P -->|HTTPS and single-use token| N
     N --> S
     S --> D
     D --> O
-    O --> DB
-    D -->|HTTPS, idempotent request| R
-    R -->|Assessment email| P
+    O -->|parameterized queries| DB
+    D -->|idempotent email request| R
+    R -->|assessment email| P
+    D --> F
+    F -->|POST or PUT Patient| H
+    F -->|POST Observation| H
+    H -->|Patient and Observation search Bundles| F
+    F -->|validated mapped records| O
 ```
 
 The Next.js application is the only component that accesses PostgreSQL or
-provider credentials. Server Components perform reads, Server Actions handle
-mutations, and both call clinician-scoped data functions before using Prisma.
-The public assessment route has no patient login; possession of the
-high-entropy, expiring, single-use token is its narrowly scoped authorization.
+provider credentials. Server Components perform reads and Server Actions
+handle mutations; both call clinician-scoped services before using Prisma or
+the FHIR client. The public assessment route has no patient login; possession
+of the high-entropy, expiring, single-use token is its narrowly scoped
+authorization.
 
 ## Entity relationship diagram
 
@@ -263,6 +340,11 @@ erDiagram
         string mrn UK
         string email
         string phone
+        string fhirResourceId UK
+        enum fhirOwnership
+        enum fhirSyncStatus
+        datetime fhirLastSyncedAt
+        string fhirLastError
         datetime createdAt
         datetime updatedAt
     }
@@ -306,6 +388,11 @@ erDiagram
         string unit
         decimal refLow
         decimal refHigh
+        enum source
+        string fhirResourceId UK
+        enum fhirSyncStatus
+        datetime fhirLastSyncedAt
+        string fhirLastError
         datetime createdAt
     }
 ```
@@ -330,6 +417,12 @@ The lab-result uniqueness rule is the composite
   quotes and neutralize spreadsheet formulas.
 - Raw CSV uploads are not stored, filenames are sanitized, provider errors are
   bounded, and sensitive values are not intentionally logged.
+- FHIR credentials are read only on the server. Pagination links are restricted
+  to the configured HTTPS FHIR origin and path so authentication cannot leak to
+  an attacker-controlled host.
+- Candidate ownership is checked before remote updates. Shared seed resources
+  are stored as read-only, and their MRNs are locked locally and enforced
+  during the authenticated database update.
 - Secrets remain server-side and environment files are ignored by Git.
 
 This is a challenge application using fabricated data, not a certified medical
@@ -376,6 +469,25 @@ submission, so an expired token can never be used. `EXPIRED` is persisted when
 the public assessment, patient history, or clinic dashboard is read. At larger
 scale, a scheduled job would materialize expiry proactively for reporting.
 
+### Synchronous FHIR synchronization
+
+Patient and CSV workflows attempt FHIR synchronization immediately, which
+keeps challenge behavior easy to observe and gives clinicians a clear
+per-resource status. The transport retries temporary failures, while permanent
+failures leave the local record intact with a bounded error instead of losing
+clinic work. A production national integration should use an outbox and
+background workers with durable retries, dead-letter handling, monitoring, and
+an explicit manual retry control.
+
+### Explicit historical import
+
+Historical data is imported with a clinician-triggered action so the data
+movement is intentional and its result is visible. The importer fetches and
+validates all five remote patient packages before opening a short serializable
+database transaction. Re-running it matches resource IDs and clinical
+uniqueness keys instead of duplicating data. A larger recurring feed should use
+incremental synchronization based on FHIR history or `_lastUpdated` cursors.
+
 ### Healthcare lifecycle
 
 Deleting a patient currently cascades to their assessments and lab results,
@@ -389,18 +501,19 @@ consent handling, backups, and an approved data-governance process.
    production `DATABASE_URL`.
 2. Import this repository into Vercel.
 3. Add `DATABASE_URL`, `EMAIL_DELIVERY_MODE=resend`, `APP_URL`,
-   `RESEND_API_KEY`, and `EMAIL_FROM` to the Vercel Production environment.
+   `RESEND_API_KEY`, `EMAIL_FROM`, `FHIR_BASE_URL`, `FHIR_CANDIDATE_ID`, and
+   `FHIR_API_KEY` to the Vercel Production environment.
 4. Set `APP_URL` to the final `https://...vercel.app` origin.
 5. Keep Vercel's detected `npm run build` build command. The `postinstall`
    script generates Prisma Client during dependency installation.
 6. Deploy, run `npm run seed` once against the production database, and verify
-   login, email delivery, CSV import, and responsive layouts.
+   login, email delivery, CSV import, FHIR push/pull, and responsive layouts.
 
 Do not place secrets in `NEXT_PUBLIC_...` variables. Keep the Vercel production
 database and email credentials separate from local development credentials.
 
 ## Scope
 
-Tier 2 FHIR synchronization and the Tier 3 AI bonus are intentionally not
-included in this branch. The focus is a complete, polished, and explainable
-Tier 1 implementation.
+Tier 1 and Tier 2 are implemented. The open-ended Tier 3 AI bonus is not
+included; the submission prioritizes a complete, testable clinical workflow
+and a carefully bounded external-data integration.
