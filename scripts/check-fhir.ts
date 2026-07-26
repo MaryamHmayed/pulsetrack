@@ -9,7 +9,11 @@ import {
   FhirRequestError,
 } from "../lib/fhir/transport";
 import { FHIR_MRN_SYSTEM } from "../lib/fhir/mapping";
-import type { FhirPatient, FhirResource } from "../lib/fhir/types";
+import type {
+  FhirObservation,
+  FhirPatient,
+  FhirResource,
+} from "../lib/fhir/types";
 
 type CapabilityStatement = FhirResource & {
   resourceType: "CapabilityStatement";
@@ -40,7 +44,12 @@ async function main() {
 
   console.log(`FHIR connection successful${version}.`);
 
-  const mrn = process.argv[2]?.trim().toUpperCase();
+  const arguments_ = process.argv.slice(2);
+  const mrn = arguments_
+    .find((argument) => !argument.startsWith("--"))
+    ?.trim()
+    .toUpperCase();
+  const includeObservations = arguments_.includes("--observations");
 
   if (mrn) {
     const search = new URLSearchParams({
@@ -64,6 +73,25 @@ async function main() {
         )
         .join(", ")}.`,
     );
+
+    if (includeObservations) {
+      for (const patient of patients) {
+        if (!patient.id) {
+          continue;
+        }
+
+        const observationSearch = new URLSearchParams({
+          subject: `Patient/${patient.id}`,
+          _count: "50",
+        });
+        const observations = await transport.searchAll<FhirObservation>(
+          `Observation?${observationSearch.toString()}`,
+        );
+        console.log(
+          `Found ${observations.length} FHIR Observation resource(s) linked to Patient ${patient.id}.`,
+        );
+      }
+    }
   }
 }
 

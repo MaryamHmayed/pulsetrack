@@ -1,5 +1,9 @@
 import { FhirConfigurationError } from "@/lib/fhir/config-values";
-import { FhirMappingError, FHIR_MRN_SYSTEM } from "@/lib/fhir/mapping";
+import {
+  FHIR_LAB_IDENTIFIER_SYSTEM,
+  FhirMappingError,
+  FHIR_MRN_SYSTEM,
+} from "@/lib/fhir/mapping";
 import { FhirRequestError } from "@/lib/fhir/transport";
 import type { FhirResource } from "@/lib/fhir/types";
 
@@ -10,6 +14,10 @@ const MAX_SYNC_ERROR_LENGTH = 500;
 
 export function patientCreateCondition(mrn: string) {
   return `identifier=${FHIR_MRN_SYSTEM}|${mrn}`;
+}
+
+export function observationCreateCondition(labResultId: string) {
+  return `identifier=${FHIR_LAB_IDENTIFIER_SYSTEM}|${labResultId}`;
 }
 
 export function isCandidateOwnedResource(

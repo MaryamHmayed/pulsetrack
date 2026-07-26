@@ -4,6 +4,7 @@ import { FhirRequestError } from "@/lib/fhir/transport";
 import {
   FHIR_CANDIDATE_TAG_SYSTEM,
   isCandidateOwnedResource,
+  observationCreateCondition,
   patientCreateCondition,
   safeFhirSyncError,
 } from "@/lib/fhir/sync-values";
@@ -12,6 +13,13 @@ test("builds the conditional Patient create expression from the MRN", () => {
   assert.equal(
     patientCreateCondition("MRN-1001"),
     "identifier=https://challenge.capadev.dev/mrn|MRN-1001",
+  );
+});
+
+test("builds the conditional Observation create expression from the local id", () => {
+  assert.equal(
+    observationCreateCondition("lab-result-1"),
+    "identifier=https://challenge.capadev.dev/lab-result|lab-result-1",
   );
 });
 

@@ -181,6 +181,12 @@ export async function getLabImportReport(importId: string) {
       fileName: true,
       createdAt: true,
       report: true,
+      labResults: {
+        select: {
+          fhirSyncStatus: true,
+          fhirLastError: true,
+        },
+      },
     },
   });
 
@@ -198,6 +204,25 @@ export async function getLabImportReport(importId: string) {
     fileName: labImport.fileName,
     createdAt: labImport.createdAt,
     report,
+    fhirSync: {
+      total: labImport.labResults.length,
+      synced: labImport.labResults.filter(
+        (result) => result.fhirSyncStatus === "SYNCED",
+      ).length,
+      failed: labImport.labResults.filter(
+        (result) => result.fhirSyncStatus === "FAILED",
+      ).length,
+      pending: labImport.labResults.filter(
+        (result) => result.fhirSyncStatus === "PENDING",
+      ).length,
+      errors: [
+        ...new Set(
+          labImport.labResults.flatMap((result) =>
+            result.fhirLastError ? [result.fhirLastError] : [],
+          ),
+        ),
+      ],
+    },
   };
 }
 

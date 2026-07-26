@@ -21,6 +21,9 @@ export async function getPatientLabResults(patientId: string) {
       unit: true,
       refLow: true,
       refHigh: true,
+      source: true,
+      fhirSyncStatus: true,
+      fhirLastError: true,
     },
   });
 
@@ -43,6 +46,9 @@ export async function getPatientLabResults(patientId: string) {
       refHigh,
       refHighText: result.refHigh?.toString() ?? null,
       rangeStatus,
+      source: result.source,
+      fhirSyncStatus: result.fhirSyncStatus,
+      fhirLastError: result.fhirLastError,
     };
   });
 }

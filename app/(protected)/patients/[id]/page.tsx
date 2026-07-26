@@ -54,6 +54,13 @@ const fhirSyncLabels = {
   READ_ONLY: "FHIR read-only",
 } as const;
 
+const labFhirSyncLabels = {
+  PENDING: "Pending",
+  SYNCED: "Synced",
+  FAILED: "Failed",
+  READ_ONLY: "Imported",
+} as const;
+
 function getAge(dob: Date) {
   const today = new Date();
   let age = today.getUTCFullYear() - dob.getUTCFullYear();
@@ -284,6 +291,9 @@ export default async function PatientPage({
                       <th className="px-4 py-3 font-semibold" scope="col">
                         Range
                       </th>
+                      <th className="px-4 py-3 font-semibold" scope="col">
+                        FHIR
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -316,6 +326,18 @@ export default async function PatientPage({
                             <span className="mt-1 block text-xs text-slate-500">
                               {result.refLowText}–{result.refHighText}{" "}
                               {result.unit}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${fhirSyncStyles[result.fhirSyncStatus]}`}
+                          >
+                            {labFhirSyncLabels[result.fhirSyncStatus]}
+                          </span>
+                          {result.fhirLastError ? (
+                            <span className="mt-1 block max-w-64 text-xs leading-5 text-red-700">
+                              {result.fhirLastError}
                             </span>
                           ) : null}
                         </td>

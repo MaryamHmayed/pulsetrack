@@ -5,6 +5,7 @@ import { requireClinician } from "@/lib/auth/session";
 import { importLabCsv } from "@/lib/data/lab-imports";
 import { LabCsvFileError } from "@/lib/labs/csv";
 import { MAX_LAB_CSV_BYTES } from "@/lib/labs/upload";
+import { syncLabImportToFhir } from "@/lib/fhir/lab-sync";
 
 export type LabUploadState = {
   kind?: "ERROR";
@@ -46,6 +47,7 @@ export async function uploadLabCsvAction(
   try {
     const result = await importLabCsv(upload.name, await upload.text());
     importId = result.importId;
+    await syncLabImportToFhir(importId).catch(() => undefined);
   } catch (error) {
     return {
       kind: "ERROR",
