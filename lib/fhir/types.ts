@@ -2,6 +2,8 @@ export type FhirResource = {
   resourceType: string;
   id?: string;
   meta?: {
+    versionId?: string;
+    lastUpdated?: string;
     tag?: FhirCoding[];
   };
 };

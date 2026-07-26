@@ -82,13 +82,58 @@ export async function updatePatient(
 ) {
   const clinician = await requireClinician();
 
-  return db.patient.updateMany({
-    where: {
-      id: patientId,
-      clinicianId: clinician.id,
+  return db.$transaction(
+    async (transaction) => {
+      const current = await transaction.patient.findFirst({
+        where: {
+          id: patientId,
+          clinicianId: clinician.id,
+        },
+        select: {
+          id: true,
+          fhirOwnership: true,
+        },
+      });
+
+      if (!current) {
+        return null;
+      }
+
+      await transaction.patient.update({
+        where: { id: current.id },
+        data: {
+          ...input,
+          ...(current.fhirOwnership === "READ_ONLY"
+            ? {}
+            : {
+                fhirSyncStatus: "PENDING" as const,
+                fhirLastError: null,
+              }),
+        },
+      });
+
+      return transaction.patient.findUnique({
+        where: { id: current.id },
+        select: {
+          id: true,
+          fullName: true,
+          dob: true,
+          sex: true,
+          mrn: true,
+          email: true,
+          phone: true,
+          fhirResourceId: true,
+          fhirOwnership: true,
+          fhirSyncStatus: true,
+        },
+      });
     },
-    data: input,
-  });
+    {
+      isolationLevel: "Serializable",
+      maxWait: 5_000,
+      timeout: 10_000,
+    },
+  );
 }
 
 export async function deletePatient(patientId: string) {

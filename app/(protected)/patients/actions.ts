@@ -12,7 +12,10 @@ import {
   validatePatientForm,
   type PatientFormState,
 } from "@/lib/validation/patient";
-import { syncCreatedPatientToFhir } from "@/lib/fhir/patient-sync";
+import {
+  syncCreatedPatientToFhir,
+  syncUpdatedPatientToFhir,
+} from "@/lib/fhir/patient-sync";
 
 function isUniqueConstraintError(error: unknown) {
   return (
@@ -85,8 +88,26 @@ export async function updatePatientAction(
   try {
     const updated = await updatePatientRecord(patientId, result.data);
 
-    if (updated.count !== 1) {
+    if (!updated) {
       return { message: "Patient not found or access was denied." };
+    }
+
+    const patient = {
+      ...updated,
+      sex: result.data.sex,
+    };
+
+    if (
+      patient.fhirOwnership === "OWNED" &&
+      patient.fhirResourceId
+    ) {
+      await syncUpdatedPatientToFhir({
+        ...patient,
+        fhirOwnership: "OWNED",
+        fhirResourceId: patient.fhirResourceId,
+      }).catch(() => undefined);
+    } else if (patient.fhirOwnership !== "READ_ONLY") {
+      await syncCreatedPatientToFhir(patient).catch(() => undefined);
     }
   } catch (error) {
     if (isUniqueConstraintError(error)) {

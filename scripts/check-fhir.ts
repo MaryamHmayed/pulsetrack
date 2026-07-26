@@ -58,7 +58,10 @@ async function main() {
 
     console.log(
       `Found ${patients.length} FHIR Patient resource(s) for MRN ${mrn}: ${patients
-        .map((patient) => patient.id ?? "missing-id")
+        .map(
+          (patient) =>
+            `${patient.id ?? "missing-id"} (version ${patient.meta?.versionId ?? "unknown"})`,
+        )
         .join(", ")}.`,
     );
   }

@@ -41,6 +41,39 @@ test("authenticates FHIR requests and sends FHIR JSON headers", async () => {
   );
 });
 
+test("updates a specific owned FHIR resource with PUT", async () => {
+  const requests: Array<{ url: string; init?: RequestInit }> = [];
+  const transport = createFhirTransport({
+    baseUrl,
+    apiKey: "private-api-key",
+    fetchImplementation: async (input, init) => {
+      requests.push({ url: input.toString(), init });
+      return Response.json({
+        resourceType: "Patient",
+        id: "patient-1",
+      });
+    },
+  });
+  const resource = {
+    resourceType: "Patient",
+    id: "patient-1",
+  };
+
+  await transport.update("Patient", "patient-1", resource);
+
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0]?.url, `${baseUrl}/Patient/patient-1`);
+  assert.equal(requests[0]?.init?.method, "PUT");
+  assert.equal(
+    new Headers(requests[0]?.init?.headers).get("If-None-Exist"),
+    null,
+  );
+  assert.deepEqual(
+    JSON.parse(String(requests[0]?.init?.body)),
+    resource,
+  );
+});
+
 test("retries a rate-limited request using Retry-After", async () => {
   let requestCount = 0;
   const delays: number[] = [];

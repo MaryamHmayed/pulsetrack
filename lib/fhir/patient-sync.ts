@@ -13,7 +13,7 @@ import {
   safeFhirSyncError,
 } from "@/lib/fhir/sync-values";
 
-type CreatedPatient = {
+type PatientForFhirSync = {
   id: string;
   fullName: string;
   dob: Date;
@@ -23,7 +23,40 @@ type CreatedPatient = {
   phone: string | null;
 };
 
-export async function syncCreatedPatientToFhir(patient: CreatedPatient) {
+async function markPatientSyncFailure(
+  patientId: string,
+  error: unknown,
+) {
+  const message = safeFhirSyncError(error);
+
+  await db.patient.updateMany({
+    where: {
+      id: patientId,
+      fhirSyncStatus: "PENDING",
+    },
+    data: {
+      fhirSyncStatus: "FAILED",
+      fhirLastError: message,
+    },
+  });
+
+  return { status: "FAILED" as const, error: message };
+}
+
+function assertMatchingPatient(
+  patient: PatientForFhirSync,
+  mapped: ReturnType<typeof fromFhirPatient>,
+) {
+  if (mapped.mrn !== patient.mrn) {
+    throw new FhirMappingError(
+      "The FHIR server returned a Patient with a different MRN.",
+    );
+  }
+}
+
+export async function syncCreatedPatientToFhir(
+  patient: PatientForFhirSync,
+) {
   try {
     const client = createConfiguredFhirClient();
     const response = await client.transport.create(
@@ -32,12 +65,7 @@ export async function syncCreatedPatientToFhir(patient: CreatedPatient) {
       patientCreateCondition(patient.mrn),
     );
     const mapped = fromFhirPatient(response.resource);
-
-    if (mapped.mrn !== patient.mrn) {
-      throw new FhirMappingError(
-        "The FHIR server returned a Patient with a different MRN.",
-      );
-    }
+    assertMatchingPatient(patient, mapped);
 
     const owned =
       response.status === 201 ||
@@ -61,19 +89,51 @@ export async function syncCreatedPatientToFhir(patient: CreatedPatient) {
 
     return { status: syncStatus, fhirResourceId: mapped.fhirResourceId };
   } catch (error) {
-    const message = safeFhirSyncError(error);
+    return markPatientSyncFailure(patient.id, error);
+  }
+}
+
+export async function syncUpdatedPatientToFhir(
+  patient: PatientForFhirSync & {
+    fhirResourceId: string;
+    fhirOwnership: "OWNED";
+  },
+) {
+  try {
+    const client = createConfiguredFhirClient();
+    const response = await client.transport.update(
+      "Patient",
+      patient.fhirResourceId,
+      toFhirPatient(patient, patient.fhirResourceId),
+    );
+    const mapped = fromFhirPatient(response.resource);
+    assertMatchingPatient(patient, mapped);
+
+    if (mapped.fhirResourceId !== patient.fhirResourceId) {
+      throw new FhirMappingError(
+        "The FHIR server returned a different Patient resource id.",
+      );
+    }
 
     await db.patient.updateMany({
       where: {
         id: patient.id,
+        fhirResourceId: patient.fhirResourceId,
+        fhirOwnership: "OWNED",
         fhirSyncStatus: "PENDING",
       },
       data: {
-        fhirSyncStatus: "FAILED",
-        fhirLastError: message,
+        fhirSyncStatus: "SYNCED",
+        fhirLastSyncedAt: new Date(),
+        fhirLastError: null,
       },
     });
 
-    return { status: "FAILED" as const, error: message };
+    return {
+      status: "SYNCED" as const,
+      fhirResourceId: mapped.fhirResourceId,
+    };
+  } catch (error) {
+    return markPatientSyncFailure(patient.id, error);
   }
 }
