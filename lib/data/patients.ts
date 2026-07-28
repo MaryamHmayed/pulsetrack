@@ -149,3 +149,55 @@ export async function deletePatient(patientId: string) {
     },
   });
 }
+
+export async function beginPatientFhirRetry(patientId: string) {
+  const clinician = await requireClinician();
+
+  return db.$transaction(async (transaction) => {
+    const patient = await transaction.patient.findFirst({
+      where: {
+        id: patientId,
+        clinicianId: clinician.id,
+        fhirSyncStatus: "FAILED",
+        OR: [{ fhirOwnership: null }, { fhirOwnership: "OWNED" }],
+      },
+      select: {
+        id: true,
+        fullName: true,
+        dob: true,
+        sex: true,
+        mrn: true,
+        email: true,
+        phone: true,
+        fhirResourceId: true,
+        fhirOwnership: true,
+      },
+    });
+
+    if (
+      !patient ||
+      (patient.sex !== "MALE" && patient.sex !== "FEMALE")
+    ) {
+      return null;
+    }
+
+    const updated = await transaction.patient.updateMany({
+      where: {
+        id: patient.id,
+        clinicianId: clinician.id,
+        fhirSyncStatus: "FAILED",
+      },
+      data: {
+        fhirSyncStatus: "PENDING",
+        fhirLastError: null,
+      },
+    });
+
+    return updated.count === 1
+      ? {
+          ...patient,
+          sex: patient.sex,
+        }
+      : null;
+  });
+}

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getLabImportReport } from "@/lib/data/lab-imports";
 import { formatDateTimeUtc } from "@/lib/format/date";
 import { ValidationReport } from "../validation-report";
+import { LabFhirRetryButton } from "../fhir-retry-button";
 
 export default async function LabImportReportPage({
   params,
@@ -43,19 +44,24 @@ export default async function LabImportReportPage({
               External synchronization
             </h2>
           </div>
-          {labImport.fhirSync.total > 0 ? (
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                labImport.fhirSync.failed > 0
-                  ? "bg-red-50 text-red-700"
-                  : labImport.fhirSync.pending > 0
-                    ? "bg-amber-50 text-amber-800"
-                    : "bg-teal-50 text-teal-800"
-              }`}
-            >
-              {labImport.fhirSync.synced}/{labImport.fhirSync.total} synced
-            </span>
-          ) : null}
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            {labImport.fhirSync.total > 0 ? (
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  labImport.fhirSync.failed > 0
+                    ? "bg-red-50 text-red-700"
+                    : labImport.fhirSync.pending > 0
+                      ? "bg-amber-50 text-amber-800"
+                      : "bg-teal-50 text-teal-800"
+                }`}
+              >
+                {labImport.fhirSync.synced}/{labImport.fhirSync.total} synced
+              </span>
+            ) : null}
+            {labImport.fhirSync.failed > 0 ? (
+              <LabFhirRetryButton importId={labImport.id} />
+            ) : null}
+          </div>
         </div>
 
         {labImport.fhirSync.total === 0 ? (

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { buildTimeSeriesGeometry } from "@/lib/charts/time-series";
 import { formatShortDateUtc } from "@/lib/format/date";
 
@@ -36,6 +39,10 @@ export function LabTrendChart({
   title,
   results,
 }: LabTrendChartProps) {
+  const [activeIndex, setActiveIndex] = useState(
+    Math.max(results.length - 1, 0),
+  );
+
   if (results.length === 0) {
     return (
       <article className="rounded-xl border border-dashed border-[#bfd6df] bg-[#fbfdfe] p-5">
@@ -57,6 +64,8 @@ export function LabTrendChart({
       first.collectedDate.getTime() - second.collectedDate.getTime(),
   );
   const latest = orderedResults.at(-1)!;
+  const selectedIndex = Math.min(activeIndex, orderedResults.length - 1);
+  const selected = orderedResults[selectedIndex];
   const latestWithRange = orderedResults.findLast(
     (result) =>
       result.refLow !== null &&
@@ -85,23 +94,36 @@ export function LabTrendChart({
     <article className="min-w-0 rounded-xl border border-[#dce7ec] bg-[#fbfdfe] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-slate-900">{title}</h3>
+          <h3 className="font-semibold text-slate-900" id={titleId}>
+            {title}
+          </h3>
           <p className="mt-1 text-xs text-slate-500">
             {latestWithRange
               ? `Reference ${latestWithRange.refLowText}-${latestWithRange.refHighText} ${latestWithRange.unit}`
               : "Reference range unavailable"}
           </p>
         </div>
-        <p className="text-right">
+        <p aria-live="polite" className="text-right">
           <span className="block text-lg font-bold text-teal-800">
-            {latest.valueText}{" "}
-            <span className="text-sm font-medium">{latest.unit}</span>
+            {selected.valueText}{" "}
+            <span className="text-sm font-medium">{selected.unit}</span>
           </span>
           <span className="block text-xs text-slate-500">
-            Latest · {formatShortDateUtc(latest.collectedDate)}
+            {selectedIndex === orderedResults.length - 1 ? "Latest" : "Selected"}{" "}
+            · {formatShortDateUtc(selected.collectedDate)}
           </span>
         </p>
       </div>
+      <p className="sr-only" id={descriptionId}>
+        {orderedResults.length} {title} result
+        {orderedResults.length === 1 ? "" : "s"}, from{" "}
+        {formatShortDateUtc(orderedResults[0].collectedDate)} to{" "}
+        {formatShortDateUtc(latest.collectedDate)}. Latest result is{" "}
+        {latest.valueText} {latest.unit}.
+        {latestWithRange
+          ? " The most recent recorded reference range is shown."
+          : " No reference range was supplied."}
+      </p>
 
       <svg
         aria-labelledby={`${titleId} ${descriptionId}`}
@@ -110,18 +132,6 @@ export function LabTrendChart({
         role="img"
         viewBox={`0 0 ${width} ${height}`}
       >
-        <title id={titleId}>{title} results over time</title>
-        <desc id={descriptionId}>
-          {orderedResults.length} {title} result
-          {orderedResults.length === 1 ? "" : "s"}, from{" "}
-          {formatShortDateUtc(orderedResults[0].collectedDate)} to{" "}
-          {formatShortDateUtc(latest.collectedDate)}. Latest result is{" "}
-          {latest.valueText} {latest.unit}.
-          {latestWithRange
-            ? " The most recent recorded reference range is shown."
-            : " No reference range was supplied."}
-        </desc>
-
         {geometry.referenceBand ? (
           <rect
             fill="#d8f1f2"
@@ -222,21 +232,40 @@ export function LabTrendChart({
           />
         ) : null}
 
+        <line
+          aria-hidden="true"
+          stroke="#1098a3"
+          strokeDasharray="4 5"
+          strokeOpacity="0.35"
+          x1={geometry.points[selectedIndex].x}
+          x2={geometry.points[selectedIndex].x}
+          y1={plotTop}
+          y2={plotBottom}
+        />
+
         {geometry.points.map((point, index) => (
           <circle
+            aria-label={`${formatShortDateUtc(point.date)}: ${formatTick(point.value)} ${latest.unit}`}
             cx={point.x}
             cy={point.y}
-            fill="#ffffff"
+            fill={selectedIndex === index ? "#1098a3" : "#ffffff"}
+            className="cursor-pointer outline-none focus-visible:stroke-[#073a5a]"
             key={`${point.date.toISOString()}-${index}`}
-            r="5"
+            onClick={() => setActiveIndex(index)}
+            onFocus={() => setActiveIndex(index)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setActiveIndex(index);
+              }
+            }}
+            onMouseEnter={() => setActiveIndex(index)}
+            r={selectedIndex === index ? 7 : 5}
+            role="button"
             stroke="#1098a3"
             strokeWidth="3"
-          >
-            <title>
-              {formatShortDateUtc(point.date)}: {formatTick(point.value)}{" "}
-              {latest.unit}
-            </title>
-          </circle>
+            tabIndex={0}
+          />
         ))}
       </svg>
 
@@ -258,6 +287,9 @@ export function LabTrendChart({
           <span>{orderedResults.length} results</span>
         )}
       </div>
+      <p className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500">
+        Select or focus a point to inspect its date and value.
+      </p>
     </article>
   );
 }

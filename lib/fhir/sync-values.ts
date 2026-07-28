@@ -33,6 +33,14 @@ export function isCandidateOwnedResource(
   );
 }
 
+export function isCandidateOwnedCreateResponse(
+  status: number,
+  resource: FhirResource,
+  candidateId: string,
+) {
+  return status === 201 || isCandidateOwnedResource(resource, candidateId);
+}
+
 export function safeFhirSyncError(error: unknown) {
   if (
     error instanceof FhirRequestError ||

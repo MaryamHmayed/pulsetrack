@@ -3,6 +3,7 @@ import test from "node:test";
 import { FhirRequestError } from "@/lib/fhir/transport";
 import {
   FHIR_CANDIDATE_TAG_SYSTEM,
+  isCandidateOwnedCreateResponse,
   isCandidateOwnedResource,
   observationCreateCondition,
   patientCreateCondition,
@@ -38,6 +39,37 @@ test("recognizes only the configured candidate ownership tag", () => {
 
   assert.equal(isCandidateOwnedResource(resource, "candidate-1"), true);
   assert.equal(isCandidateOwnedResource(resource, "candidate-2"), false);
+});
+
+test("accepts newly created or candidate-tagged writes and rejects unowned matches", () => {
+  const unowned = {
+    resourceType: "Patient",
+    id: "patient-1",
+  };
+  const owned = {
+    ...unowned,
+    meta: {
+      tag: [
+        {
+          system: "https://challenge.capadev.dev/tags",
+          code: "candidate-1",
+        },
+      ],
+    },
+  };
+
+  assert.equal(
+    isCandidateOwnedCreateResponse(201, unowned, "candidate-1"),
+    true,
+  );
+  assert.equal(
+    isCandidateOwnedCreateResponse(200, owned, "candidate-1"),
+    true,
+  );
+  assert.equal(
+    isCandidateOwnedCreateResponse(200, unowned, "candidate-1"),
+    false,
+  );
 });
 
 test("surfaces bounded known FHIR errors and hides unknown failures", () => {

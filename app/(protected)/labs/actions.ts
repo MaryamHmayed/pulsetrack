@@ -1,16 +1,64 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireClinician } from "@/lib/auth/session";
 import { importLabCsv } from "@/lib/data/lab-imports";
 import { LabCsvFileError } from "@/lib/labs/csv";
 import { MAX_LAB_CSV_BYTES } from "@/lib/labs/upload";
-import { syncLabImportToFhir } from "@/lib/fhir/lab-sync";
+import {
+  retryLabImportToFhir,
+  syncLabImportToFhir,
+} from "@/lib/fhir/lab-sync";
+import { safeFhirSyncError } from "@/lib/fhir/sync-values";
 
 export type LabUploadState = {
   kind?: "ERROR";
   message?: string;
 };
+
+export type LabFhirRetryState = {
+  kind?: "SUCCESS" | "ERROR";
+  message?: string;
+};
+
+export async function retryLabImportFhirAction(
+  importId: string,
+  _previousState: LabFhirRetryState,
+): Promise<LabFhirRetryState> {
+  void _previousState;
+  await requireClinician();
+
+  try {
+    const result = await retryLabImportToFhir(importId);
+    revalidatePath(`/labs/${importId}`);
+    revalidatePath("/labs");
+
+    if (!result.eligible) {
+      return {
+        kind: "ERROR",
+        message: "No failed local Observations are eligible for retry.",
+      };
+    }
+
+    return result.failed === 0
+      ? {
+          kind: "SUCCESS",
+          message: `${result.synced} Observation${
+            result.synced === 1 ? "" : "s"
+          } synchronized successfully.`,
+        }
+      : {
+          kind: "ERROR",
+          message: `${result.synced} synchronized; ${result.failed} still failed. Review the updated error below.`,
+        };
+  } catch (error) {
+    return {
+      kind: "ERROR",
+      message: safeFhirSyncError(error),
+    };
+  }
+}
 
 export async function uploadLabCsvAction(
   _previousState: LabUploadState,

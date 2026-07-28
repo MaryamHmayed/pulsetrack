@@ -8,7 +8,7 @@ import {
   toFhirPatient,
 } from "@/lib/fhir/mapping";
 import {
-  isCandidateOwnedResource,
+  isCandidateOwnedCreateResponse,
   patientCreateCondition,
   safeFhirSyncError,
 } from "@/lib/fhir/sync-values";
@@ -67,11 +67,17 @@ export async function syncCreatedPatientToFhir(
     const mapped = fromFhirPatient(response.resource);
     assertMatchingPatient(patient, mapped);
 
-    const owned =
-      response.status === 201 ||
-      isCandidateOwnedResource(response.resource, client.candidateId);
-    const syncStatus = owned ? "SYNCED" : "READ_ONLY";
-    const ownership = owned ? "OWNED" : "READ_ONLY";
+    const owned = isCandidateOwnedCreateResponse(
+      response.status,
+      response.resource,
+      client.candidateId,
+    );
+
+    if (!owned) {
+      throw new FhirMappingError(
+        "A FHIR Patient with this MRN already exists but is not owned by this account. Review the MRN before retrying.",
+      );
+    }
 
     await db.patient.updateMany({
       where: {
@@ -80,14 +86,17 @@ export async function syncCreatedPatientToFhir(
       },
       data: {
         fhirResourceId: mapped.fhirResourceId,
-        fhirOwnership: ownership,
-        fhirSyncStatus: syncStatus,
+        fhirOwnership: "OWNED",
+        fhirSyncStatus: "SYNCED",
         fhirLastSyncedAt: new Date(),
         fhirLastError: null,
       },
     });
 
-    return { status: syncStatus, fhirResourceId: mapped.fhirResourceId };
+    return {
+      status: "SYNCED" as const,
+      fhirResourceId: mapped.fhirResourceId,
+    };
   } catch (error) {
     return markPatientSyncFailure(patient.id, error);
   }

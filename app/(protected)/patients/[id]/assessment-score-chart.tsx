@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { formatShortDateUtc } from "@/lib/format/date";
 
 type AssessmentScore = {
@@ -41,7 +44,18 @@ function uniqueDates(dates: Date[]) {
   });
 }
 
+function getRiskLabel(score: number) {
+  if (score >= 19) return "Very high risk";
+  if (score >= 13) return "High risk";
+  if (score >= 7) return "Moderate risk";
+  return "Low risk";
+}
+
 export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
+  const [activeIndex, setActiveIndex] = useState(
+    Math.max(scores.length - 1, 0),
+  );
+
   if (scores.length === 0) {
     return (
       <div className="mt-6 rounded-xl border border-dashed border-slate-300 px-5 py-8 text-center">
@@ -93,27 +107,45 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
           orderedScores.at(-1)!.completedAt,
         ]);
   const latest = orderedScores.at(-1)!;
+  const selectedIndex = Math.min(activeIndex, orderedScores.length - 1);
+  const selected = orderedScores[selectedIndex];
 
   return (
     <div className="mt-6 min-w-0 rounded-xl border border-[#dce7ec] bg-[#fbfdfe] p-3 sm:p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-slate-900">
+          <h3
+            className="font-semibold text-slate-900"
+            id="assessment-score-title"
+          >
             DSMA-8 score history
           </h3>
           <p className="mt-1 text-xs text-slate-500">
             Higher scores indicate greater self-management risk.
           </p>
         </div>
-        <p className="text-right">
+        <p aria-live="polite" className="text-right">
           <span className="block text-lg font-bold text-teal-800">
-            {latest.score}/24
+            {selected.score}/24
           </span>
           <span className="block text-xs text-slate-500">
-            Latest · {formatShortDateUtc(latest.completedAt)}
+            {selectedIndex === orderedScores.length - 1
+              ? "Latest"
+              : "Selected"}{" "}
+            · {formatShortDateUtc(selected.completedAt)}
+          </span>
+          <span className="mt-1 block text-xs font-semibold text-slate-700">
+            {getRiskLabel(selected.score)}
           </span>
         </p>
       </div>
+      <p className="sr-only" id="assessment-score-description">
+        {orderedScores.length} completed assessment
+        {orderedScores.length === 1 ? "" : "s"}. Scores range from{" "}
+        {Math.min(...orderedScores.map(({ score }) => score))} to{" "}
+        {Math.max(...orderedScores.map(({ score }) => score))} out of 24.
+        Latest score is {latest.score}.
+      </p>
 
       <svg
         aria-labelledby="assessment-score-title assessment-score-description"
@@ -122,15 +154,6 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
         role="img"
         viewBox={`0 0 ${width} ${height}`}
       >
-        <title id="assessment-score-title">DSMA-8 score history</title>
-        <desc id="assessment-score-description">
-          {orderedScores.length} completed assessment
-          {orderedScores.length === 1 ? "" : "s"}. Scores range from{" "}
-          {Math.min(...orderedScores.map(({ score }) => score))} to{" "}
-          {Math.max(...orderedScores.map(({ score }) => score))} out of 24.
-          Latest score is {latest.score}.
-        </desc>
-
         {riskBands.map((band) => {
           const top = yForScore(band.max);
           const bottom = yForScore(band.min);
@@ -248,20 +271,40 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
           />
         ) : null}
 
+        <line
+          aria-hidden="true"
+          stroke="#1098a3"
+          strokeDasharray="4 5"
+          strokeOpacity="0.35"
+          x1={points[selectedIndex].x}
+          x2={points[selectedIndex].x}
+          y1={plot.top}
+          y2={plot.bottom}
+        />
+
         {points.map((point, index) => (
           <circle
+            aria-label={`${formatShortDateUtc(point.completedAt)}: ${point.score} out of 24, ${getRiskLabel(point.score)}`}
             cx={point.x}
             cy={point.y}
-            fill="#ffffff"
+            fill={selectedIndex === index ? "#1098a3" : "#ffffff"}
+            className="cursor-pointer outline-none focus-visible:stroke-[#073a5a]"
             key={`${point.completedAt.toISOString()}-${index}`}
-            r="5"
+            onClick={() => setActiveIndex(index)}
+            onFocus={() => setActiveIndex(index)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setActiveIndex(index);
+              }
+            }}
+            onMouseEnter={() => setActiveIndex(index)}
+            r={selectedIndex === index ? 7 : 5}
+            role="button"
             stroke="#1098a3"
             strokeWidth="3"
-          >
-            <title>
-              {formatShortDateUtc(point.completedAt)}: {point.score} out of 24
-            </title>
-          </circle>
+            tabIndex={0}
+          />
         ))}
       </svg>
 
@@ -270,6 +313,9 @@ export function AssessmentScoreChart({ scores }: AssessmentScoreChartProps) {
           One completed assessment; another is needed to establish a trend.
         </p>
       ) : null}
+      <p className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500">
+        Select or focus a point to inspect its score and risk band.
+      </p>
     </div>
   );
 }

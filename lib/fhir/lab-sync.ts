@@ -9,7 +9,7 @@ import {
   toFhirObservation,
 } from "@/lib/fhir/mapping";
 import {
-  isCandidateOwnedResource,
+  isCandidateOwnedCreateResponse,
   observationCreateCondition,
   safeFhirSyncError,
 } from "@/lib/fhir/sync-values";
@@ -171,9 +171,11 @@ export async function syncLabImportToFhir(importId: string) {
         );
       }
 
-      const owned =
-        response.status === 201 ||
-        isCandidateOwnedResource(response.resource, client.candidateId);
+      const owned = isCandidateOwnedCreateResponse(
+        response.status,
+        response.resource,
+        client.candidateId,
+      );
 
       if (!owned) {
         throw new FhirMappingError(
@@ -201,4 +203,27 @@ export async function syncLabImportToFhir(importId: string) {
   }
 
   return { total: results.length, synced, failed };
+}
+
+export async function retryLabImportToFhir(importId: string) {
+  const clinician = await requireClinician();
+  const reset = await db.labResult.updateMany({
+    where: {
+      importId,
+      import: { clinicianId: clinician.id },
+      source: "LOCAL",
+      fhirSyncStatus: "FAILED",
+    },
+    data: {
+      fhirSyncStatus: "PENDING",
+      fhirLastError: null,
+    },
+  });
+
+  if (reset.count === 0) {
+    return { eligible: false as const, total: 0, synced: 0, failed: 0 };
+  }
+
+  const result = await syncLabImportToFhir(importId);
+  return { eligible: true as const, ...result };
 }

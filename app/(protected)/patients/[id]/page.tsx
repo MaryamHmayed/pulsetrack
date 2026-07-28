@@ -5,6 +5,7 @@ import { getAssessmentHistory } from "@/lib/data/assessments";
 import { getPatientLabResults } from "@/lib/data/lab-results";
 import { formatDateTimeUtc } from "@/lib/format/date";
 import { DeletePatientButton } from "../delete-patient-button";
+import { PatientFhirRetryButton } from "../fhir-retry-button";
 import { SendAssessmentButton } from "../send-assessment-button";
 import { AssessmentScoreChart } from "./assessment-score-chart";
 import { LabTrendChart } from "./lab-trend-chart";
@@ -48,17 +49,27 @@ const fhirSyncStyles = {
 } as const;
 
 const fhirSyncLabels = {
-  PENDING: "FHIR pending",
+  PENDING: "Awaiting FHIR",
   SYNCED: "FHIR synced",
-  FAILED: "FHIR failed",
-  READ_ONLY: "FHIR read-only",
+  FAILED: "Sync needs attention",
+  READ_ONLY: "FHIR history · read-only",
 } as const;
 
 const labFhirSyncLabels = {
-  PENDING: "Pending",
-  SYNCED: "Synced",
-  FAILED: "Failed",
-  READ_ONLY: "Imported",
+  PENDING: "Awaiting FHIR",
+  SYNCED: "FHIR synced",
+  FAILED: "Needs attention",
+  READ_ONLY: "Not applicable",
+} as const;
+
+const labSourceStyles = {
+  LOCAL: "border-blue-200 bg-blue-50 text-blue-700",
+  FHIR: "border-slate-200 bg-slate-100 text-slate-700",
+} as const;
+
+const labSourceLabels = {
+  LOCAL: "Local CSV",
+  FHIR: "FHIR history",
 } as const;
 
 function getAge(dob: Date) {
@@ -120,7 +131,32 @@ export default async function PatientPage({
         ← Back to patients
       </Link>
 
-      <section className="app-card mt-6 overflow-hidden p-6 sm:p-8">
+      <nav
+        aria-label="Patient page sections"
+        className="app-card mt-5 overflow-x-auto p-2"
+      >
+        <div className="flex min-w-max gap-1">
+          {[
+            ["overview", "Overview"],
+            ["lab-trends", "Lab trends"],
+            ["lab-results", `Lab results (${labResults.length})`],
+            ["assessments", `Assessments (${assessments.length})`],
+          ].map(([target, label]) => (
+            <a
+              className="min-h-10 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-teal-50 hover:text-teal-800 focus-visible:bg-teal-50"
+              href={`#${target}`}
+              key={target}
+            >
+              {label}
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      <section
+        className="app-card mt-6 scroll-mt-28 overflow-hidden p-6 sm:p-8"
+        id="overview"
+      >
         <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
           <div>
             <div className="flex flex-wrap items-center gap-3">
@@ -129,6 +165,11 @@ export default async function PatientPage({
                 className={`rounded-full px-2.5 py-1 text-xs font-semibold ${fhirSyncStyles[patient.fhirSyncStatus]}`}
               >
                 {fhirSyncLabels[patient.fhirSyncStatus]}
+              </span>
+              <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
+                {patient.fhirOwnership === "READ_ONLY"
+                  ? "Source: FHIR history"
+                  : "Source: local"}
               </span>
             </div>
             <h1 className="app-title mt-2">
@@ -167,6 +208,7 @@ export default async function PatientPage({
               {patient.fhirLastError ??
                 "The external health platform could not be reached."}
             </p>
+            <PatientFhirRetryButton patientId={patient.id} />
           </div>
         ) : patient.fhirSyncStatus === "READ_ONLY" ? (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
@@ -210,7 +252,10 @@ export default async function PatientPage({
         </dl>
       </section>
 
-      <section className="app-card mt-6 p-5 sm:p-6">
+      <section
+        className="app-card mt-6 scroll-mt-28 p-5 sm:p-6"
+        id="lab-trends"
+      >
         <div>
           <h2 className="text-lg font-bold">Lab trends</h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -232,8 +277,11 @@ export default async function PatientPage({
         </div>
       </section>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="app-card min-w-0 p-5 sm:p-6">
+      <div className="mt-6 space-y-6">
+        <section
+          className="app-card min-w-0 scroll-mt-28 p-5 sm:p-6"
+          id="lab-results"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-bold">Lab results</h2>
             <div className="flex flex-wrap items-center gap-2">
@@ -275,7 +323,7 @@ export default async function PatientPage({
             </div>
           ) : (
             <div className="mt-6 overflow-hidden rounded-xl border border-slate-200">
-              <div className="overflow-x-auto">
+              <div className="hidden overflow-x-auto md:block">
                 <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
                   <caption className="sr-only">
                     Imported lab results for {patient.fullName}
@@ -295,7 +343,10 @@ export default async function PatientPage({
                         Range
                       </th>
                       <th className="px-4 py-3 font-semibold" scope="col">
-                        FHIR
+                        Source
+                      </th>
+                      <th className="px-4 py-3 font-semibold" scope="col">
+                        Sync status
                       </th>
                     </tr>
                   </thead>
@@ -334,6 +385,13 @@ export default async function PatientPage({
                         </td>
                         <td className="px-4 py-4">
                           <span
+                            className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${labSourceStyles[result.source]}`}
+                          >
+                            {labSourceLabels[result.source]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span
                             className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${fhirSyncStyles[result.fhirSyncStatus]}`}
                           >
                             {labFhirSyncLabels[result.fhirSyncStatus]}
@@ -349,11 +407,77 @@ export default async function PatientPage({
                   </tbody>
                 </table>
               </div>
+              <ul className="divide-y divide-slate-100 md:hidden">
+                {labResults.map((result) => (
+                  <li className="p-4" key={result.id}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          {result.testCode}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {result.testName}
+                        </p>
+                      </div>
+                      <span
+                        className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${labRangeStyles[result.rangeStatus]}`}
+                      >
+                        {labRangeLabels[result.rangeStatus]}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 flex items-end justify-between gap-4 rounded-xl bg-slate-50 p-3">
+                      <div>
+                        <p className="text-xs font-medium text-slate-500">
+                          Collected
+                        </p>
+                        <p className="mt-1 text-sm font-medium">
+                          {formatDate(result.collectedDate)}
+                        </p>
+                      </div>
+                      <p className="text-right text-lg font-bold text-[#073a5a]">
+                        {result.valueText}{" "}
+                        <span className="text-xs font-medium text-slate-500">
+                          {result.unit}
+                        </span>
+                      </p>
+                    </div>
+
+                    {result.refLowText && result.refHighText ? (
+                      <p className="mt-3 text-xs text-slate-500">
+                        Reference: {result.refLowText}–{result.refHighText}{" "}
+                        {result.unit}
+                      </p>
+                    ) : null}
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${labSourceStyles[result.source]}`}
+                      >
+                        {labSourceLabels[result.source]}
+                      </span>
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${fhirSyncStyles[result.fhirSyncStatus]}`}
+                      >
+                        {labFhirSyncLabels[result.fhirSyncStatus]}
+                      </span>
+                    </div>
+                    {result.fhirLastError ? (
+                      <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
+                        {result.fhirLastError}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </section>
 
-        <section className="app-card min-w-0 p-5 sm:p-6">
+        <section
+          className="app-card min-w-0 scroll-mt-28 p-5 sm:p-6"
+          id="assessments"
+        >
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <h2 className="text-lg font-bold">Assessment history</h2>
             <SendAssessmentButton patientId={patient.id} />

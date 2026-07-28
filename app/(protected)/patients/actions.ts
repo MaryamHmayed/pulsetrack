@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireClinician } from "@/lib/auth/session";
 import {
   createPatient as createPatientRecord,
+  beginPatientFhirRetry,
   deletePatient as deletePatientRecord,
   updatePatient as updatePatientRecord,
 } from "@/lib/data/patients";
@@ -41,6 +42,61 @@ export type HistoricalFhirImportState = {
     observationConflicts: number;
   };
 };
+
+export type FhirRetryState = {
+  kind?: "SUCCESS" | "ERROR";
+  message?: string;
+};
+
+export async function retryPatientFhirAction(
+  patientId: string,
+  _previousState: FhirRetryState,
+): Promise<FhirRetryState> {
+  void _previousState;
+  await requireClinician();
+
+  try {
+    const patient = await beginPatientFhirRetry(patientId);
+
+    if (!patient) {
+      return {
+        kind: "ERROR",
+        message:
+          "This patient is not eligible for retry, or access was denied.",
+      };
+    }
+
+    const result =
+      patient.fhirOwnership === "OWNED" && patient.fhirResourceId
+        ? await syncUpdatedPatientToFhir({
+            ...patient,
+            fhirOwnership: "OWNED",
+            fhirResourceId: patient.fhirResourceId,
+          })
+        : await syncCreatedPatientToFhir(patient);
+
+    revalidatePath("/patients");
+    revalidatePath(`/patients/${patientId}`);
+
+    return result.status === "SYNCED"
+      ? {
+          kind: "SUCCESS",
+          message: "Patient synchronized with FHIR successfully.",
+        }
+      : {
+          kind: "ERROR",
+          message:
+            "error" in result
+              ? result.error
+              : "FHIR synchronization could not be completed.",
+        };
+  } catch (error) {
+    return {
+      kind: "ERROR",
+      message: safeFhirSyncError(error),
+    };
+  }
+}
 
 export async function importHistoricalFhirAction(
   _previousState: HistoricalFhirImportState,

@@ -39,6 +39,7 @@ export default async function PatientsPage() {
           mrn: patient.mrn,
           email: patient.email,
           phone: patient.phone,
+          fhirSyncStatus: patient.fhirSyncStatus,
         }))}
       />
     </main>
