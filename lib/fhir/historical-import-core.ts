@@ -1,8 +1,4 @@
-import "server-only";
-
-import { db } from "@/lib/db";
-import { requireClinician } from "@/lib/auth/session";
-import { createConfiguredFhirClient } from "@/lib/fhir/client";
+import type { PrismaClient } from "@/generated/prisma/client";
 import {
   FhirMappingError,
   fromFhirObservation,
@@ -22,6 +18,7 @@ import type {
   FhirObservation,
   FhirPatient,
 } from "@/lib/fhir/types";
+import type { FhirTransport } from "@/lib/fhir/transport";
 
 type HistoricalPatientPackage = {
   patient: ImportedFhirPatient;
@@ -36,8 +33,12 @@ function localObservationKey(
   return `${patientId}|${collectedDate.toISOString().slice(0, 10)}|${testCode}`;
 }
 
-async function fetchHistoricalPackages() {
-  const client = createConfiguredFhirClient();
+type HistoricalImportClient = {
+  candidateId: string;
+  transport: FhirTransport;
+};
+
+async function fetchHistoricalPackages(client: HistoricalImportClient) {
   const packages: HistoricalPatientPackage[] = [];
 
   for (const mrn of HISTORICAL_SEED_MRNS) {
@@ -88,12 +89,15 @@ async function fetchHistoricalPackages() {
   return packages;
 }
 
-export async function importHistoricalFhirData() {
-  const clinician = await requireClinician();
-  const packages = await fetchHistoricalPackages();
+export async function importHistoricalFhirDataForClinician(
+  database: PrismaClient,
+  client: HistoricalImportClient,
+  clinicianId: string,
+) {
+  const packages = await fetchHistoricalPackages(client);
   const synchronizedAt = new Date();
 
-  return db.$transaction(
+  return database.$transaction(
     async (transaction) => {
       const localPatientIds = new Map<string, string>();
       let patientsCreated = 0;
@@ -109,7 +113,7 @@ export async function importHistoricalFhirData() {
           },
         });
 
-        if (existing && existing.clinicianId !== clinician.id) {
+        if (existing && existing.clinicianId !== clinicianId) {
           throw new FhirMappingError(
             `Historical Patient ${item.patient.mrn} is already assigned to another clinician.`,
           );
@@ -118,7 +122,7 @@ export async function importHistoricalFhirData() {
         if (!existing) {
           const created = await transaction.patient.create({
             data: {
-              clinicianId: clinician.id,
+              clinicianId,
               fullName: item.patient.fullName,
               dob: item.patient.dob,
               sex: item.patient.sex,

@@ -17,7 +17,6 @@ import {
   syncCreatedPatientToFhir,
   syncUpdatedPatientToFhir,
 } from "@/lib/fhir/patient-sync";
-import { importHistoricalFhirData } from "@/lib/fhir/historical-import";
 import { safeFhirSyncError } from "@/lib/fhir/sync-values";
 
 function isUniqueConstraintError(error: unknown) {
@@ -28,20 +27,6 @@ function isUniqueConstraintError(error: unknown) {
     error.code === "P2002"
   );
 }
-
-export type HistoricalFhirImportState = {
-  kind?: "SUCCESS" | "ERROR";
-  message?: string;
-  summary?: {
-    patientsTotal: number;
-    patientsCreated: number;
-    patientsMatched: number;
-    observationsTotal: number;
-    observationsCreated: number;
-    observationsSkipped: number;
-    observationConflicts: number;
-  };
-};
 
 export type FhirRetryState = {
   kind?: "SUCCESS" | "ERROR";
@@ -90,33 +75,6 @@ export async function retryPatientFhirAction(
               ? result.error
               : "FHIR synchronization could not be completed.",
         };
-  } catch (error) {
-    return {
-      kind: "ERROR",
-      message: safeFhirSyncError(error),
-    };
-  }
-}
-
-export async function importHistoricalFhirAction(
-  _previousState: HistoricalFhirImportState,
-  _formData: FormData,
-): Promise<HistoricalFhirImportState> {
-  void _previousState;
-  void _formData;
-  await requireClinician();
-
-  try {
-    const summary = await importHistoricalFhirData();
-    revalidatePath("/dashboard");
-    revalidatePath("/patients");
-    revalidatePath("/labs");
-
-    return {
-      kind: "SUCCESS",
-      message: "Historical FHIR data imported successfully.",
-      summary,
-    };
   } catch (error) {
     return {
       kind: "ERROR",

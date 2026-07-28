@@ -11,6 +11,7 @@
     "lint": "eslint",
     "seed": "prisma db seed",
     "fhir:check": "tsx scripts/check-fhir.ts",
+    "fhir:import-history": "tsx scripts/import-fhir-history.ts",
     "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {

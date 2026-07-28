@@ -40,7 +40,7 @@ Only fabricated patient and clinical data should be used with this application.
 | --- | --- |
 | Patient push | Local patient creation uses an idempotent conditional `Patient` create; later edits update the specific candidate-owned FHIR resource |
 | Observation push | Every accepted local CSV row is mapped to a LOINC-coded `Observation` linked to the patient's FHIR resource |
-| Historical pull | One clinician action imports the five supplied MRNs and their 180 historical observations into the existing patient dashboards |
+| Historical pull | An idempotent administrative command imports the five supplied MRNs and their 180 historical observations into the existing patient dashboards |
 | Idempotency | Conditional creates, stored FHIR resource IDs, database uniqueness constraints, and import matching prevent duplicate patients and observations |
 | External API handling | Server-only API-key authentication, ten-second request timeouts, bounded retries, `Retry-After` support, safe pagination, validated FHIR responses, and visible per-resource failure states |
 | Shared-server isolation | Candidate-owned resources may be updated; imported seed resources are marked read-only and never written back |
@@ -112,6 +112,7 @@ code.
 npx prisma generate
 npx prisma migrate deploy
 npm run seed
+npm run fhir:import-history -- test@pulsetrack.dev
 npm run dev
 ```
 
@@ -119,7 +120,9 @@ Open [http://localhost:3000](http://localhost:3000) and sign in with the test
 clinician above.
 
 The seed is idempotent: it upserts the test clinician and three fabricated
-patients instead of creating duplicates.
+patients instead of creating duplicates. The FHIR history command is also
+idempotent and requires the target clinician email explicitly; repeat runs
+match existing remote IDs and clinical keys rather than creating duplicates.
 
 Confirm the configured FHIR connection before testing synchronization:
 
@@ -174,9 +177,10 @@ idempotency helpers, and bounded provider errors.
     Edit it and confirm the same FHIR resource is updated.
 11. Upload a new lab row for that patient and confirm its Observation badge is
     **Synced**. Re-upload the row to confirm duplicate rejection.
-12. On **Patients**, select **Import FHIR history**. Confirm five read-only
-    patients and 180 observations appear in the patient and clinic dashboards.
-    Run the import again and confirm that it creates nothing twice.
+12. Confirm the five FHIR-history patients and their 180 read-only
+    observations appear alongside local records in patient and clinic
+    dashboards. Run the administrative import command again and confirm its
+    summary reports that existing records were skipped.
 
 ## FHIR synchronization
 
@@ -479,14 +483,15 @@ clinic work. A production national integration should use an outbox and
 background workers with durable retries, dead-letter handling, monitoring, and
 an explicit manual retry control.
 
-### Explicit historical import
+### Administrative historical import
 
-Historical data is imported with a clinician-triggered action so the data
-movement is intentional and its result is visible. The importer fetches and
-validates all five remote patient packages before opening a short serializable
-database transaction. Re-running it matches resource IDs and clinical
-uniqueness keys instead of duplicating data. A larger recurring feed should use
-incremental synchronization based on FHIR history or `_lastUpdated` cursors.
+Historical data is provisioned with an explicit administrative command instead
+of a routine clinician-facing control. The command requires a clinician email,
+then fetches and validates all five remote patient packages before opening a
+short serializable database transaction. Re-running it matches resource IDs and
+clinical uniqueness keys instead of duplicating data. A larger recurring feed
+should run as a monitored background job using incremental synchronization
+based on FHIR history or `_lastUpdated` cursors.
 
 ### Healthcare lifecycle
 
@@ -506,8 +511,11 @@ consent handling, backups, and an approved data-governance process.
 4. Set `APP_URL` to the final `https://...vercel.app` origin.
 5. Keep Vercel's detected `npm run build` build command. The `postinstall`
    script generates Prisma Client during dependency installation.
-6. Deploy, run `npm run seed` once against the production database, and verify
-   login, email delivery, CSV import, FHIR push/pull, and responsive layouts.
+6. Deploy and run `npm run seed` once against the production database.
+7. Run `npm run fhir:import-history -- test@pulsetrack.dev` against that same
+   production configuration.
+8. Verify login, email delivery, CSV import, FHIR push/pull, and responsive
+   layouts.
 
 Do not place secrets in `NEXT_PUBLIC_...` variables. Keep the Vercel production
 database and email credentials separate from local development credentials.
