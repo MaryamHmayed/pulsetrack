@@ -26,8 +26,15 @@ export type ClinicalAttentionArea = CitedClinicalText & {
   title: string;
 };
 
+export type CrossDomainPerspective = CitedClinicalText & {
+  relationship: "ALIGNED" | "DIVERGENT" | "COMPLEMENTARY" | "LIMITED";
+  headline: string;
+  clinicalRelevance: string;
+};
+
 export type ClinicalReview = {
   summary: CitedClinicalText;
+  combinedPerspective: CrossDomainPerspective[];
   attentionAreas: ClinicalAttentionArea[];
   followUpQuestions: CitedClinicalText[];
 };
@@ -124,6 +131,46 @@ function responseSchema(evidenceIds: string[]) {
     type: "object",
     properties: {
       summary: citedText,
+      combinedPerspective: {
+        type: "array",
+        maxItems: 1,
+        description:
+          "Exactly one clinically useful, non-causal synthesis when both LAB and ASSESSMENT evidence exist; otherwise empty.",
+        items: {
+          type: "object",
+          properties: {
+            relationship: {
+              type: "string",
+              enum: ["ALIGNED", "DIVERGENT", "COMPLEMENTARY", "LIMITED"],
+              description:
+                "How the objective lab evidence and reported self-management evidence relate.",
+            },
+            headline: {
+              type: "string",
+              description:
+                "A concise relationship-focused heading, not a list of results.",
+            },
+            text: {
+              type: "string",
+              description:
+                "Compare the lab trajectory with DSMA-8 risk and explain their relationship without claiming causation.",
+            },
+            clinicalRelevance: {
+              type: "string",
+              description:
+                "Explain why the relationship matters for clinician interpretation and what context should be clarified.",
+            },
+            evidenceIds: citedText.properties.evidenceIds,
+          },
+          required: [
+            "relationship",
+            "headline",
+            "text",
+            "clinicalRelevance",
+            "evidenceIds",
+          ],
+        },
+      },
       attentionAreas: {
         type: "array",
         maxItems: MAX_ATTENTION_AREAS,
@@ -145,7 +192,12 @@ function responseSchema(evidenceIds: string[]) {
         items: citedText,
       },
     },
-    required: ["summary", "attentionAreas", "followUpQuestions"],
+    required: [
+      "summary",
+      "combinedPerspective",
+      "attentionAreas",
+      "followUpQuestions",
+    ],
   };
 }
 
@@ -158,6 +210,12 @@ function systemInstruction() {
     "Do not introduce external guidelines, targets, thresholds, or facts.",
     "Reference ranges and DSMA-8 risk bands may be described only as supplied.",
     "Every statement and question must cite the exact evidence IDs that support it.",
+    "When both LAB and ASSESSMENT evidence exist, return exactly one combinedPerspective that cites at least one LAB ID and one ASM ID.",
+    "Do not merely restate both results. Compare the objective lab trajectory with the reported DSMA-8 self-management risk.",
+    "Classify the relationship as ALIGNED, DIVERGENT, COMPLEMENTARY, or LIMITED, then explain why it matters for clinician interpretation and what context should be clarified.",
+    "ALIGNED means both domains support a similar overall interpretation; DIVERGENT means they point in different directions; COMPLEMENTARY means one adds distinct context to the other; LIMITED means timing or coverage prevents a meaningful link.",
+    "The combined perspective must never claim that one domain caused the other.",
+    "When either LAB or ASSESSMENT evidence is absent, combinedPerspective must be an empty array.",
     "If evidence is sparse or mixed, say so plainly instead of filling gaps.",
     "Use neutral language such as 'review' or 'discuss', not directives.",
     "Follow the response schema exactly.",
@@ -301,14 +359,133 @@ function invalidResponse(message: string) {
 export function parseClinicalReview(
   value: unknown,
   evidenceIds: string[],
+  options: {
+    requireCombinedPerspectiveField?: boolean;
+    requireEnhancedCombinedPerspective?: boolean;
+  } = {},
 ): ClinicalReview {
   const review = requireObject(value, "review");
   const allowedEvidenceIds = new Set(evidenceIds);
   requireExactKeys(review, "review", [
     "summary",
+    "combinedPerspective",
     "attentionAreas",
     "followUpQuestions",
   ]);
+  const hasLabEvidence = evidenceIds.some((id) => id.startsWith("LAB-"));
+  const hasAssessmentEvidence = evidenceIds.some((id) =>
+    id.startsWith("ASM-"),
+  );
+  const hasBothDomains = hasLabEvidence && hasAssessmentEvidence;
+  const combinedValue = review.combinedPerspective;
+
+  if (
+    options.requireCombinedPerspectiveField &&
+    !Object.hasOwn(review, "combinedPerspective")
+  ) {
+    throw invalidResponse("combinedPerspective is required.");
+  }
+
+  if (combinedValue !== undefined && !Array.isArray(combinedValue)) {
+    throw invalidResponse("combinedPerspective must be an array.");
+  }
+
+  const combinedItems = Array.isArray(combinedValue) ? combinedValue : [];
+
+  if (combinedItems.length > 1) {
+    throw invalidResponse("combinedPerspective contains too many items.");
+  }
+
+  if (
+    options.requireCombinedPerspectiveField &&
+    combinedItems.length !== (hasBothDomains ? 1 : 0)
+  ) {
+    throw invalidResponse(
+      hasBothDomains
+        ? "combinedPerspective must connect both evidence domains."
+        : "combinedPerspective requires both evidence domains.",
+    );
+  }
+
+  const combinedPerspective = combinedItems.map((value, index) => {
+    const field = `combinedPerspective[${index}]`;
+    const item = requireObject(value, field);
+    const isLegacy =
+      !Object.hasOwn(item, "relationship") &&
+      !Object.hasOwn(item, "headline") &&
+      !Object.hasOwn(item, "clinicalRelevance");
+
+    if (options.requireEnhancedCombinedPerspective && isLegacy) {
+      throw invalidResponse(
+        "combinedPerspective must explain the cross-domain relationship.",
+      );
+    }
+
+    const parsed = parseCitedText(
+      item,
+      field,
+      allowedEvidenceIds,
+      MAX_ITEM_TEXT_LENGTH,
+      isLegacy
+        ? ["text", "evidenceIds"]
+        : [
+            "relationship",
+            "headline",
+            "text",
+            "clinicalRelevance",
+            "evidenceIds",
+          ],
+    );
+    const citesLab = parsed.evidenceIds.some((id) => id.startsWith("LAB-"));
+    const citesAssessment = parsed.evidenceIds.some((id) =>
+      id.startsWith("ASM-"),
+    );
+
+    if (!citesLab || !citesAssessment) {
+      throw invalidResponse(
+        "combinedPerspective must cite lab and assessment evidence.",
+      );
+    }
+
+    if (isLegacy) {
+      return {
+        ...parsed,
+        relationship: "LIMITED" as const,
+        headline: "Earlier combined review",
+        clinicalRelevance:
+          "Refresh this review to generate an explicit cross-domain interpretation.",
+      };
+    }
+
+    const relationship = requireBoundedText(
+      item.relationship,
+      `${field}.relationship`,
+      20,
+    );
+
+    if (
+      !["ALIGNED", "DIVERGENT", "COMPLEMENTARY", "LIMITED"].includes(
+        relationship,
+      )
+    ) {
+      throw invalidResponse(`${field}.relationship is invalid.`);
+    }
+
+    return {
+      ...parsed,
+      relationship: relationship as CrossDomainPerspective["relationship"],
+      headline: requireBoundedText(
+        item.headline,
+        `${field}.headline`,
+        MAX_ITEM_TITLE_LENGTH,
+      ),
+      clinicalRelevance: requireBoundedText(
+        item.clinicalRelevance,
+        `${field}.clinicalRelevance`,
+        MAX_ITEM_TEXT_LENGTH,
+      ),
+    };
+  });
 
   if (!Array.isArray(review.attentionAreas)) {
     throw invalidResponse("attentionAreas must be an array.");
@@ -333,6 +510,7 @@ export function parseClinicalReview(
       allowedEvidenceIds,
       MAX_SUMMARY_LENGTH,
     ),
+    combinedPerspective,
     attentionAreas: review.attentionAreas.map((value, index) => {
       const item = requireObject(value, `attentionAreas[${index}]`);
       const citedText = parseCitedText(
@@ -466,7 +644,10 @@ export async function generateClinicalReview(
       throw invalidResponse("Gemini returned malformed JSON.");
     }
 
-    return parseClinicalReview(parsed, evidenceIds);
+    return parseClinicalReview(parsed, evidenceIds, {
+      requireCombinedPerspectiveField: true,
+      requireEnhancedCombinedPerspective: true,
+    });
   } catch (error) {
     if (error instanceof ClinicalReviewError) {
       throw error;

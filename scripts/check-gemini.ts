@@ -38,18 +38,25 @@ async function main() {
         source: "LOCAL",
       },
     ],
-    assessments: [],
+    assessments: [
+      {
+        completedAt: new Date("2026-06-15T00:00:00.000Z"),
+        score: 9,
+        riskBand: "MODERATE",
+      },
+    ],
   });
   const review = await generateClinicalReview(snapshot, configuration);
   const citedIds = new Set([
     ...review.summary.evidenceIds,
+    ...review.combinedPerspective.flatMap((item) => item.evidenceIds),
     ...review.attentionAreas.flatMap((item) => item.evidenceIds),
     ...review.followUpQuestions.flatMap((item) => item.evidenceIds),
   ]);
 
   console.log(`Gemini connection successful (${configuration.model}).`);
   console.log(
-    `Validated ${1 + review.attentionAreas.length + review.followUpQuestions.length} cited review item(s) using ${citedIds.size} fabricated evidence reference(s).`,
+    `Validated ${1 + review.combinedPerspective.length + review.attentionAreas.length + review.followUpQuestions.length} cited review item(s) using ${citedIds.size} fabricated evidence reference(s).`,
   );
 }
 

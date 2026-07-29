@@ -51,6 +51,13 @@ function evidenceRangeLabel(item: ClinicalEvidenceItem) {
   return labels[item.rangeStatus];
 }
 
+const relationshipLabels = {
+  ALIGNED: "Aligned signals",
+  DIVERGENT: "Divergent signals",
+  COMPLEMENTARY: "Complementary signals",
+  LIMITED: "Limited comparison",
+} as const;
+
 export function ClinicalReviewPanel({
   patientId,
   review,
@@ -190,6 +197,56 @@ export function ClinicalReviewPanel({
               />
             </p>
           </article>
+
+          {review.review.combinedPerspective[0] ? (
+            <article className="relative overflow-hidden rounded-2xl border border-[#b8dce8] bg-[linear-gradient(135deg,#073a5a_0%,#07516b_58%,#087b83_100%)] p-5 text-white shadow-[0_14px_30px_rgba(7,58,90,0.16)]">
+              <div
+                aria-hidden="true"
+                className="absolute -right-8 -top-10 h-32 w-32 rounded-full border border-white/15"
+              />
+              <div className="relative">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/12 text-cyan-100">
+                    <Icon className="h-4 w-4" name="sparkles" />
+                  </span>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-100">
+                    Combined perspective
+                  </p>
+                  <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                    {
+                      relationshipLabels[
+                        review.review.combinedPerspective[0].relationship
+                      ]
+                    }
+                  </span>
+                </div>
+                <h3 className="mt-4 text-lg font-bold text-white">
+                  {review.review.combinedPerspective[0].headline}
+                </h3>
+                <p className="mt-2 max-w-4xl text-sm leading-7 text-white/90 sm:text-base">
+                  {review.review.combinedPerspective[0].text}
+                </p>
+                <div className="mt-4 rounded-xl border border-white/15 bg-black/10 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-100">
+                    Why this matters
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-white/90">
+                    {review.review.combinedPerspective[0].clinicalRelevance}
+                    <Citations
+                      evidenceIds={
+                        review.review.combinedPerspective[0].evidenceIds
+                      }
+                      onSelect={selectEvidence}
+                    />
+                  </p>
+                </div>
+                <p className="mt-3 text-xs leading-5 text-cyan-100/80">
+                  Relationship classification supports review; it does not
+                  establish causation.
+                </p>
+              </div>
+            </article>
+          ) : null}
 
           <div>
             <h3 className="text-base font-bold text-slate-900">

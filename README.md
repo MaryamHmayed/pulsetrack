@@ -49,9 +49,10 @@ Only fabricated patient and clinical data should be used with this application.
 
 | Requirement | Implementation |
 | --- | --- |
-| Useful clinical feature | An on-demand evidence-backed review summarizes recorded changes, areas for clinician review, and possible follow-up questions |
+| Useful clinical feature | An on-demand evidence-backed review summarizes recorded changes, connects lab and DSMA-8 patterns when both exist, identifies areas for clinician review, and suggests follow-up questions |
 | Grounding | The model receives a bounded anonymous snapshot of application-computed lab trends, supplied reference ranges, and completed DSMA-8 scores |
 | Citation enforcement | Every generated statement must cite one or more exact evidence IDs; unknown or missing citations reject the complete response |
+| Cross-domain synthesis | When both domains exist, the model must classify their relationship as aligned, divergent, complementary, or limited; explain its clinical relevance; and cite at least one result from each domain |
 | Hallucination controls | Gemini is prohibited from diagnosing, prescribing, inferring causes, or introducing external thresholds; malformed, truncated, blocked, or oversized output is rejected |
 | Privacy minimization | Names, MRNs, contact details, database IDs, FHIR IDs, and raw questionnaire tokens are never sent to Gemini |
 | Auditability | Validated reviews retain the model, generation time, data-through date, anonymous evidence, output, and an input fingerprint |
@@ -220,6 +221,8 @@ input fingerprinting, structured Gemini responses, and citation validation.
 13. On a patient with labs or a completed assessment, generate an
     **Evidence-backed clinical review**. Open its evidence list and select each
     citation badge to verify that it focuses the supporting value.
+    When both labs and completed assessments exist, confirm the **Combined
+    perspective** cites at least one `LAB-*` and one `ASM-*` item.
 14. Add a new lab result and return to the patient. Confirm the saved review is
     marked **New data available**, then refresh it.
 
@@ -564,6 +567,10 @@ bounded evidence. Structured output improves reliability, but is not treated
 as proof of factual correctness: the server validates every evidence ID and
 the UI keeps supporting values one click away. Reviews are persisted with an
 input fingerprint so clinicians can see when newer data makes a review stale.
+When both clinical domains are present, the response contract requires one
+combined perspective that classifies and explains the relationship between the
+objective lab trajectory and reported self-management risk. It must cite lab
+and assessment evidence while expressly forbidding causal language.
 
 The tradeoff is that evidence citations cannot prove that the model interpreted
 the cited value correctly. The clinician remains responsible for verification,

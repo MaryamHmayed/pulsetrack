@@ -71,6 +71,7 @@ const validReview = {
     text: "HbA1c decreased between the two recorded results.",
     evidenceIds: ["LAB-001", "LAB-002"],
   },
+  combinedPerspective: [],
   attentionAreas: [
     {
       title: "Latest HbA1c",
@@ -138,6 +139,77 @@ test("accepts only reviews whose citations exist in the snapshot", () => {
           unsupportedClinicalClaim: "This field must not be ignored.",
         },
         ["LAB-001", "LAB-002"],
+      ),
+    (error: unknown) =>
+      error instanceof ClinicalReviewError &&
+      error.code === "INVALID_RESPONSE",
+  );
+});
+
+test("requires a non-causal cross-domain item to cite lab and assessment evidence", () => {
+  const crossDomainReview = {
+    ...validReview,
+    combinedPerspective: [
+      {
+        relationship: "DIVERGENT",
+        headline: "Improving lab value with ongoing self-management risk",
+        text: "The recorded HbA1c decreased while the latest DSMA-8 remained in a moderate-risk band.",
+        clinicalRelevance:
+          "The differing signals make it useful to clarify which barriers remain despite the objective improvement.",
+        evidenceIds: ["LAB-002", "ASM-001"],
+      },
+    ],
+  };
+
+  assert.deepEqual(
+    parseClinicalReview(
+      crossDomainReview,
+      ["LAB-001", "LAB-002", "ASM-001"],
+      { requireCombinedPerspectiveField: true },
+    ),
+    crossDomainReview,
+  );
+
+  assert.throws(
+    () =>
+      parseClinicalReview(
+        {
+          ...crossDomainReview,
+          combinedPerspective: [
+            {
+              relationship: "ALIGNED",
+              headline: "Unsupported relationship",
+              text: "This does not cite both domains.",
+              clinicalRelevance: "This should be rejected.",
+              evidenceIds: ["LAB-002"],
+            },
+          ],
+        },
+        ["LAB-001", "LAB-002", "ASM-001"],
+        { requireCombinedPerspectiveField: true },
+      ),
+    (error: unknown) =>
+      error instanceof ClinicalReviewError &&
+      error.code === "INVALID_RESPONSE",
+  );
+
+  assert.throws(
+    () =>
+      parseClinicalReview(
+        {
+          ...validReview,
+          combinedPerspective: [
+            {
+              relationship: "COMPLEMENTARY",
+              headline: "Invented assessment context",
+              text: "An assessment must not be invented.",
+              clinicalRelevance: "This should be rejected.",
+              evidenceIds: ["LAB-002"],
+            },
+          ],
+        },
+        ["LAB-001", "LAB-002"],
+        { requireCombinedPerspectiveField: true },
       ),
     (error: unknown) =>
       error instanceof ClinicalReviewError &&

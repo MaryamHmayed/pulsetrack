@@ -9,6 +9,7 @@ const EVIDENCE_ID_PATTERN = /^(LAB|ASM)-\d{3}$/;
 const RANGE_STATUSES = new Set(["LOW", "NORMAL", "HIGH", "UNKNOWN"]);
 const RISK_BANDS = new Set(["LOW", "MODERATE", "HIGH", "VERY_HIGH"]);
 const SOURCES = new Set(["Local CSV", "FHIR history"]);
+const CLINICAL_REVIEW_FORMAT_VERSION = 3;
 
 export class StoredClinicalReviewError extends Error {
   constructor(message: string) {
@@ -149,6 +150,7 @@ export function clinicalEvidenceFingerprint(
   snapshot: ClinicalEvidenceSnapshot,
 ) {
   const stableInput = {
+    reviewFormatVersion: CLINICAL_REVIEW_FORMAT_VERSION,
     patientContext: snapshot.patientContext,
     evidence: snapshot.evidence,
     labTrends: snapshot.labTrends,
