@@ -12,6 +12,7 @@
     "seed": "prisma db seed",
     "fhir:check": "tsx scripts/check-fhir.ts",
     "fhir:import-history": "tsx scripts/import-fhir-history.ts",
+    "ai:check": "tsx scripts/check-gemini.ts",
     "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {

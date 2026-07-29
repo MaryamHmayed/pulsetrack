@@ -55,36 +55,38 @@ enum ClinicalDataSource {
 }
 
 model Clinician {
-  id           String      @id @default(cuid())
-  email        String      @unique
-  passwordHash String
-  name         String
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  patients     Patient[]
-  sessions     Session[]
-  labImports   LabImport[]
+  id              String           @id @default(cuid())
+  email           String           @unique
+  passwordHash    String
+  name            String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  patients        Patient[]
+  sessions        Session[]
+  labImports      LabImport[]
+  clinicalReviews ClinicalReview[]
 }
 
 model Patient {
-  id               String         @id @default(cuid())
+  id               String           @id @default(cuid())
   clinicianId      String
   fullName         String
-  dob              DateTime       @db.Date
+  dob              DateTime         @db.Date
   sex              Sex
-  mrn              String         @unique
+  mrn              String           @unique
   email            String?
   phone            String?
-  fhirResourceId   String?        @unique
+  fhirResourceId   String?          @unique
   fhirOwnership    FhirOwnership?
-  fhirSyncStatus   FhirSyncStatus @default(PENDING)
+  fhirSyncStatus   FhirSyncStatus   @default(PENDING)
   fhirLastSyncedAt DateTime?
-  fhirLastError    String?        @db.VarChar(500)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  clinician        Clinician      @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  fhirLastError    String?          @db.VarChar(500)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  clinician        Clinician        @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
   assessments      Assessment[]
   labResults       LabResult[]
+  clinicalReviews  ClinicalReview[]
 
   @@index([clinicianId])
   @@index([clinicianId, fullName])
@@ -165,4 +167,22 @@ model LabResult {
   @@index([importId])
   @@index([fhirSyncStatus])
   @@index([source])
+}
+
+model ClinicalReview {
+  id          String    @id @default(cuid())
+  patientId   String
+  clinicianId String
+  inputHash   String    @db.Char(64)
+  model       String    @db.VarChar(100)
+  evidence    Json
+  review      Json
+  dataThrough DateTime  @db.Date
+  generatedAt DateTime  @default(now())
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  clinician   Clinician @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, inputHash, model])
+  @@index([patientId, generatedAt])
+  @@index([clinicianId, generatedAt])
 }

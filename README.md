@@ -5,8 +5,8 @@ clinic. Clinicians can manage patients, email the DSMA-8 self-assessment,
 import lab results from CSV, and monitor clinical activity through clinic and
 patient dashboards.
 
-This repository contains the completed **Tier 1 and Tier 2** scope of the
-Capadev Software Engineer Challenge.
+This repository contains the completed **Tier 1, Tier 2, and Tier 3** scope of
+the Capadev Software Engineer Challenge.
 
 - Repository: [github.com/MaryamHmayed/pulsetrack](https://github.com/MaryamHmayed/pulsetrack)
 - Live application: [pulsetrack-seven.vercel.app](https://pulsetrack-seven.vercel.app)
@@ -45,6 +45,18 @@ Only fabricated patient and clinical data should be used with this application.
 | External API handling | Server-only API-key authentication, ten-second request timeouts, bounded retries, `Retry-After` support, safe pagination, validated FHIR responses, and visible per-resource failure states |
 | Shared-server isolation | Candidate-owned resources may be updated; imported seed resources are marked read-only and never written back |
 
+## Tier 3 AI coverage
+
+| Requirement | Implementation |
+| --- | --- |
+| Useful clinical feature | An on-demand evidence-backed review summarizes recorded changes, areas for clinician review, and possible follow-up questions |
+| Grounding | The model receives a bounded anonymous snapshot of application-computed lab trends, supplied reference ranges, and completed DSMA-8 scores |
+| Citation enforcement | Every generated statement must cite one or more exact evidence IDs; unknown or missing citations reject the complete response |
+| Hallucination controls | Gemini is prohibited from diagnosing, prescribing, inferring causes, or introducing external thresholds; malformed, truncated, blocked, or oversized output is rejected |
+| Privacy minimization | Names, MRNs, contact details, database IDs, FHIR IDs, and raw questionnaire tokens are never sent to Gemini |
+| Auditability | Validated reviews retain the model, generation time, data-through date, anonymous evidence, output, and an input fingerprint |
+| Freshness and cost control | Reviews are reused for identical evidence, visibly marked stale after relevant data changes, and limited to five new saved reviews per clinician per hour |
+
 ## Technology
 
 - Next.js 16 App Router and React 19
@@ -53,6 +65,7 @@ Only fabricated patient and clinical data should be used with this application.
 - Prisma ORM 7 with the PostgreSQL driver adapter
 - Tailwind CSS 4
 - Resend transactional email API
+- Google Gemini 3.1 Flash-Lite through the server-side REST API
 - Node.js built-in test runner
 
 ## Local setup
@@ -63,6 +76,7 @@ Only fabricated patient and clinical data should be used with this application.
 - npm
 - A PostgreSQL database
 - A Resend account and API key for real email delivery
+- A free-tier Gemini API key from Google AI Studio for Tier 3
 
 ### 1. Install the project
 
@@ -85,6 +99,8 @@ EMAIL_FROM="PulseTrack <onboarding@resend.dev>"
 FHIR_BASE_URL="https://fhir-challenge.vihagent.net/fhir"
 FHIR_CANDIDATE_ID="cand-your-id"
 FHIR_API_KEY="your-personal-api-key"
+GEMINI_API_KEY="your-google-ai-studio-key"
+GEMINI_MODEL="gemini-3.1-flash-lite"
 ```
 
 | Variable | Purpose |
@@ -97,6 +113,8 @@ FHIR_API_KEY="your-personal-api-key"
 | `FHIR_BASE_URL` | HTTPS base URL of the HAPI FHIR R4 server |
 | `FHIR_CANDIDATE_ID` | Candidate ownership tag issued with the challenge |
 | `FHIR_API_KEY` | Personal server-only credential sent as `X-API-Key` |
+| `GEMINI_API_KEY` | Server-only Google AI Studio credential |
+| `GEMINI_MODEL` | Gemini model used for saved clinical reviews; defaults to `gemini-3.1-flash-lite` |
 
 `onboarding@resend.dev` is Resend's testing sender and can deliver only to the
 email address associated with the Resend account. To test with it, update a
@@ -104,7 +122,14 @@ fabricated patient's email in PulseTrack to that address. A verified sender
 domain is required to deliver to arbitrary recipients.
 
 Never commit `.env` or expose `RESEND_API_KEY` or `FHIR_API_KEY` to browser
-code.
+code. `GEMINI_API_KEY` must remain server-only as well.
+
+Gemini's free tier may use submitted content to improve Google's products.
+PulseTrack therefore sends only minimized, de-identified snapshots and this
+challenge must contain fabricated data only. A real healthcare deployment
+would require an approved provider agreement, privacy and security review,
+regional controls, retention guarantees, and confirmation that submitted
+clinical data is not used for provider training.
 
 ### 3. Prepare the database and start the app
 
@@ -129,6 +154,16 @@ Confirm the configured FHIR connection before testing synchronization:
 ```bash
 npm run fhir:check
 ```
+
+Confirm the configured Gemini model with a fabricated evidence snapshot before
+using a patient record:
+
+```bash
+npm run ai:check
+```
+
+The command prints only the model name and validated citation counts; it does
+not read or print patient data.
 
 ### Optional local email preview
 
@@ -155,7 +190,8 @@ boundaries, patient validation, CSV parsing and row validation, lab export
 safety, date ranges, chart calculations, dashboard metrics, email-mode
 restrictions, FHIR configuration and mappings, authenticated transport,
 pagination, retries, ownership checks, historical-resource selection,
-idempotency helpers, and bounded provider errors.
+idempotency helpers, bounded provider errors, anonymous AI evidence snapshots,
+input fingerprinting, structured Gemini responses, and citation validation.
 
 ## Reviewer walkthrough
 
@@ -181,6 +217,11 @@ idempotency helpers, and bounded provider errors.
     observations appear alongside local records in patient and clinic
     dashboards. Run the administrative import command again and confirm its
     summary reports that existing records were skipped.
+13. On a patient with labs or a completed assessment, generate an
+    **Evidence-backed clinical review**. Open its evidence list and select each
+    citation badge to verify that it focuses the supporting value.
+14. Add a new lab result and return to the patient. Confirm the saved review is
+    marked **New data available**, then refresh it.
 
 ## FHIR synchronization
 
@@ -283,6 +324,7 @@ flowchart LR
     DB[(PostgreSQL)]
     R[Resend API]
     H[Shared HAPI FHIR R4 server]
+    G[Google Gemini API]
 
     C -->|HTTPS and session cookie| N
     P -->|HTTPS and single-use token| N
@@ -297,6 +339,8 @@ flowchart LR
     F -->|POST Observation| H
     H -->|Patient and Observation search Bundles| F
     F -->|validated mapped records| O
+    D -->|bounded de-identified evidence snapshot| G
+    G -->|schema-constrained cited review| D
 ```
 
 The Next.js application is the only component that accesses PostgreSQL or
@@ -313,8 +357,10 @@ erDiagram
     CLINICIAN ||--o{ SESSION : has
     CLINICIAN ||--o{ PATIENT : manages
     CLINICIAN ||--o{ LAB_IMPORT : uploads
+    CLINICIAN ||--o{ CLINICAL_REVIEW : generates
     PATIENT ||--o{ ASSESSMENT : receives
     PATIENT ||--o{ LAB_RESULT : has
+    PATIENT ||--o{ CLINICAL_REVIEW : has
     LAB_IMPORT o|--o{ LAB_RESULT : creates
 
     CLINICIAN {
@@ -399,6 +445,18 @@ erDiagram
         string fhirLastError
         datetime createdAt
     }
+
+    CLINICAL_REVIEW {
+        string id PK
+        string patientId FK
+        string clinicianId FK
+        string inputHash
+        string model
+        json evidence
+        json review
+        date dataThrough
+        datetime generatedAt
+    }
 ```
 
 The lab-result uniqueness rule is the composite
@@ -427,6 +485,10 @@ The lab-result uniqueness rule is the composite
 - Candidate ownership is checked before remote updates. Shared seed resources
   are stored as read-only, and their MRNs are locked locally and enforced
   during the authenticated database update.
+- Gemini is invoked only from an authenticated, clinician-scoped server
+  service. Direct identifiers are removed before the request, request size is
+  bounded, output follows a strict schema, and every citation is checked
+  against the exact supplied evidence before persistence.
 - Secrets remain server-side and environment files are ignored by Git.
 
 This is a challenge application using fabricated data, not a certified medical
@@ -493,6 +555,23 @@ clinical uniqueness keys instead of duplicating data. A larger recurring feed
 should run as a monitored background job using incremental synchronization
 based on FHIR history or `_lastUpdated` cursors.
 
+### Evidence-backed AI instead of autonomous advice
+
+The AI feature is intentionally a review aid rather than a diagnosis engine or
+open-ended patient chat. PulseTrack calculates numeric trends and assessment
+scores itself, removes direct identifiers, and asks Gemini only to organize the
+bounded evidence. Structured output improves reliability, but is not treated
+as proof of factual correctness: the server validates every evidence ID and
+the UI keeps supporting values one click away. Reviews are persisted with an
+input fingerprint so clinicians can see when newer data makes a review stale.
+
+The tradeoff is that evidence citations cannot prove that the model interpreted
+the cited value correctly. The clinician remains responsible for verification,
+and the UI explicitly avoids presenting the output as a diagnosis or treatment
+recommendation. A production clinical deployment would additionally require
+formal model evaluation, prompt/version governance, audit events, adverse-event
+monitoring, human-factors testing, and a healthcare-approved provider contract.
+
 ### Healthcare lifecycle
 
 Deleting a patient currently cascades to their assessments and lab results,
@@ -507,21 +586,22 @@ consent handling, backups, and an approved data-governance process.
 2. Import this repository into Vercel.
 3. Add `DATABASE_URL`, `EMAIL_DELIVERY_MODE=resend`, `APP_URL`,
    `RESEND_API_KEY`, `EMAIL_FROM`, `FHIR_BASE_URL`, `FHIR_CANDIDATE_ID`, and
-   `FHIR_API_KEY` to the Vercel Production environment.
+   `FHIR_API_KEY`, `GEMINI_API_KEY`, and `GEMINI_MODEL` to the Vercel
+   Production environment.
 4. Set `APP_URL` to the final `https://...vercel.app` origin.
 5. Keep Vercel's detected `npm run build` build command. The `postinstall`
    script generates Prisma Client during dependency installation.
 6. Deploy and run `npm run seed` once against the production database.
 7. Run `npm run fhir:import-history -- test@pulsetrack.dev` against that same
    production configuration.
-8. Verify login, email delivery, CSV import, FHIR push/pull, and responsive
-   layouts.
+8. Verify login, email delivery, CSV import, FHIR push/pull, AI generation and
+   citations, and responsive layouts.
 
 Do not place secrets in `NEXT_PUBLIC_...` variables. Keep the Vercel production
 database and email credentials separate from local development credentials.
 
 ## Scope
 
-Tier 1 and Tier 2 are implemented. The open-ended Tier 3 AI bonus is not
-included; the submission prioritizes a complete, testable clinical workflow
-and a carefully bounded external-data integration.
+Tier 1, Tier 2, and the evidence-backed Tier 3 AI bonus are implemented. The
+submission prioritizes a complete, testable clinical workflow, carefully
+bounded external integrations, and human-verifiable AI output.

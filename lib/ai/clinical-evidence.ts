@@ -1,9 +1,9 @@
-import { classifyLabRange, type LabRangeStatus } from "@/lib/labs/range";
+ import { classifyLabRange, type LabRangeStatus } from "@/lib/labs/range";
 
 export const MAX_AI_LAB_RESULTS = 60;
 export const MAX_AI_ASSESSMENTS = 12;
 
-type ClinicalSex = "FEMALE" | "MALE";
+type ClinicalSex = "FEMALE" | "MALE" | "OTHER" | "UNKNOWN";
 type ClinicalSource = "LOCAL" | "FHIR";
 type AssessmentRiskBand = "LOW" | "MODERATE" | "HIGH" | "VERY_HIGH";
 
@@ -65,7 +65,7 @@ export type ClinicalEvidenceSnapshot = {
   asOf: string;
   patientContext: {
     ageYears: number;
-    gender: "female" | "male" ;
+    gender: "female" | "male" | "other" | "unknown";
   };
   evidence: ClinicalEvidenceItem[];
   labTrends: ClinicalTrend[];
@@ -265,6 +265,8 @@ export function buildClinicalEvidenceSnapshot(input: {
       gender: input.sex.toLowerCase() as
         | "female"
         | "male"
+        | "other"
+        | "unknown",
     },
     evidence: [...labEvidence, ...assessmentEvidence],
     labTrends,

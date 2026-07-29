@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 import { getPatient } from "@/lib/data/patients";
 import { getAssessmentHistory } from "@/lib/data/assessments";
 import { getPatientLabResults } from "@/lib/data/lab-results";
+import { getLatestPatientClinicalReview } from "@/lib/ai/reviews";
 import { formatDateTimeUtc } from "@/lib/format/date";
 import { DeletePatientButton } from "../delete-patient-button";
 import { PatientFhirRetryButton } from "../fhir-retry-button";
 import { SendAssessmentButton } from "../send-assessment-button";
 import { AssessmentScoreChart } from "./assessment-score-chart";
 import { LabTrendChart } from "./lab-trend-chart";
+import { ClinicalReviewPanel } from "./clinical-review-panel";
 
 function formatDate(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -99,9 +101,10 @@ export default async function PatientPage({
     notFound();
   }
 
-  const [assessments, labResults] = await Promise.all([
+  const [assessments, labResults, clinicalReview] = await Promise.all([
     getAssessmentHistory(patient.id),
     getPatientLabResults(patient.id),
+    getLatestPatientClinicalReview(patient.id),
   ]);
   const glucoseResults = labResults.filter(
     (result) => result.testCode === "GLU-F",
@@ -138,6 +141,7 @@ export default async function PatientPage({
         <div className="flex min-w-max gap-1">
           {[
             ["overview", "Overview"],
+            ["clinical-review", "AI clinical review"],
             ["lab-trends", "Lab trends"],
             ["lab-results", `Lab results (${labResults.length})`],
             ["assessments", `Assessments (${assessments.length})`],
@@ -251,6 +255,14 @@ export default async function PatientPage({
           </div>
         </dl>
       </section>
+
+      <div className="mt-6">
+        <ClinicalReviewPanel
+          hasEvidence={labResults.length > 0 || completedScores.length > 0}
+          patientId={patient.id}
+          review={clinicalReview}
+        />
+      </div>
 
       <section
         className="app-card mt-6 scroll-mt-28 p-5 sm:p-6"

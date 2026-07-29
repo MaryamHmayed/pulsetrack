@@ -15,7 +15,8 @@ export type IconName =
   | "eye"
   | "eye-off"
   | "check"
-  | "arrow-right";
+  | "arrow-right"
+  | "sparkles";
 
 const paths: Record<IconName, React.ReactNode> = {
   dashboard: (
@@ -117,6 +118,13 @@ const paths: Record<IconName, React.ReactNode> = {
   "arrow-right": (
     <>
       <path d="M5 12h14M14 7l5 5-5 5" />
+    </>
+  ),
+  sparkles: (
+    <>
+      <path d="m12 3 1.15 3.1L16 7.5l-2.85 1.4L12 12l-1.15-3.1L8 7.5l2.85-1.4L12 3Z" />
+      <path d="m18.5 13 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />
+      <path d="m5.5 12 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />
     </>
   ),
 };
