@@ -12,7 +12,6 @@ import {
 import {
   EmailDeliveryError,
   getApplicationUrl,
-  getAssessmentDeliveryMode,
   sendAssessmentEmail,
 } from "@/lib/email/assessment-email";
 
@@ -63,7 +62,6 @@ export async function issueAssessment(patientId: string) {
   }
 
   const token = createAssessmentToken();
-  const deliveryMode = getAssessmentDeliveryMode();
   const assessmentUrl = `${getApplicationUrl()}/assessment/${token}`;
   const assessment = await db.assessment.create({
     data: {
@@ -72,7 +70,7 @@ export async function issueAssessment(patientId: string) {
       questionnaireVersion: dsma8.version,
       tokenHash: hashAssessmentToken(token),
       expiresAt: assessmentExpiresAt(),
-      deliveryMode,
+      deliveryMode: "EMAIL",
     },
     select: { id: true },
   });
@@ -98,17 +96,13 @@ export async function issueAssessment(patientId: string) {
     throw error;
   }
 
-  if (delivery.providerId) {
-    await db.assessment.update({
-      where: { id: assessment.id },
-      data: { emailProviderId: delivery.providerId },
-    });
-  }
+  await db.assessment.update({
+    where: { id: assessment.id },
+    data: { emailProviderId: delivery.providerId },
+  });
 
   return {
     kind: "SENT" as const,
-    mode: delivery.mode,
-    previewUrl: delivery.mode === "PREVIEW" ? assessmentUrl : null,
   };
 }
 
@@ -128,7 +122,6 @@ export async function getAssessmentHistory(patientId: string) {
       id: true,
       questionnaireVersion: true,
       status: true,
-      deliveryMode: true,
       sentAt: true,
       expiresAt: true,
       completedAt: true,

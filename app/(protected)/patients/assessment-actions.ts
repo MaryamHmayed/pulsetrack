@@ -8,7 +8,6 @@ import { EmailDeliveryError } from "@/lib/email/assessment-email";
 export type SendAssessmentState = {
   kind?: "SUCCESS" | "ERROR";
   message?: string;
-  previewUrl?: string;
 };
 
 export async function sendAssessmentAction(
@@ -29,15 +28,6 @@ export async function sendAssessmentAction(
     }
 
     revalidatePath(`/patients/${patientId}`);
-
-    if (result.mode === "PREVIEW") {
-      return {
-        kind: "SUCCESS",
-        message:
-          "Preview assessment created. Open the link below to test the patient flow.",
-        previewUrl: result.previewUrl ?? undefined,
-      };
-    }
 
     return {
       kind: "SUCCESS",

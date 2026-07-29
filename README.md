@@ -93,7 +93,6 @@ Copy `.env.example` to `.env`, then set:
 
 ```dotenv
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=verify-full"
-EMAIL_DELIVERY_MODE="resend"
 APP_URL="http://localhost:3000"
 RESEND_API_KEY="re_your_key"
 EMAIL_FROM="PulseTrack <onboarding@resend.dev>"
@@ -107,7 +106,6 @@ GEMINI_MODEL="gemini-3.1-flash-lite"
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL connection used by Prisma |
-| `EMAIL_DELIVERY_MODE` | `resend` for real delivery; `preview` is available only for explicit local testing |
 | `APP_URL` | Origin placed in assessment links; must be the deployed HTTPS URL in production |
 | `RESEND_API_KEY` | Server-only Resend credential |
 | `EMAIL_FROM` | Sender accepted by Resend |
@@ -166,18 +164,6 @@ npm run ai:check
 The command prints only the model name and validated citation counts; it does
 not read or print patient data.
 
-### Optional local email preview
-
-When email delivery is not being tested, local development can expose the
-generated assessment link directly:
-
-```dotenv
-EMAIL_DELIVERY_MODE="preview"
-```
-
-Preview mode is rejected in production so the deployed application cannot
-silently replace required email delivery with an on-screen link.
-
 ## Verification
 
 ```bash
@@ -188,8 +174,8 @@ npm run build
 
 The automated tests cover assessment-token security, DSMA-8 scoring
 boundaries, patient validation, CSV parsing and row validation, lab export
-safety, date ranges, chart calculations, dashboard metrics, email-mode
-restrictions, FHIR configuration and mappings, authenticated transport,
+safety, date ranges, chart calculations, dashboard metrics, email-provider
+errors, FHIR configuration and mappings, authenticated transport,
 pagination, retries, ownership checks, historical-resource selection,
 idempotency helpers, bounded provider errors, anonymous AI evidence snapshots,
 input fingerprinting, structured Gemini responses, and citation validation.
@@ -591,10 +577,9 @@ consent handling, backups, and an approved data-governance process.
 1. Create a PostgreSQL database and run `npx prisma migrate deploy` against its
    production `DATABASE_URL`.
 2. Import this repository into Vercel.
-3. Add `DATABASE_URL`, `EMAIL_DELIVERY_MODE=resend`, `APP_URL`,
-   `RESEND_API_KEY`, `EMAIL_FROM`, `FHIR_BASE_URL`, `FHIR_CANDIDATE_ID`, and
-   `FHIR_API_KEY`, `GEMINI_API_KEY`, and `GEMINI_MODEL` to the Vercel
-   Production environment.
+3. Add `DATABASE_URL`, `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`,
+   `FHIR_BASE_URL`, `FHIR_CANDIDATE_ID`, `FHIR_API_KEY`, `GEMINI_API_KEY`, and
+   `GEMINI_MODEL` to the Vercel Production environment.
 4. Set `APP_URL` to the final `https://...vercel.app` origin.
 5. Keep Vercel's detected `npm run build` build command. The `postinstall`
    script generates Prisma Client during dependency installation.

@@ -1,9 +1,5 @@
 import "server-only";
 
-import {
-  resolveAssessmentDeliveryMode,
-  type AssessmentDeliveryMode,
-} from "@/lib/email/delivery-mode";
 import { describeResendError } from "@/lib/email/resend-error";
 
 type AssessmentEmailInput = {
@@ -14,8 +10,7 @@ type AssessmentEmailInput = {
 };
 
 type AssessmentEmailResult = {
-  mode: AssessmentDeliveryMode;
-  providerId: string | null;
+  providerId: string;
 };
 
 export class EmailDeliveryError extends Error {
@@ -37,21 +32,6 @@ function escapeHtml(value: string) {
         "'": "&#039;",
       })[character] ?? character,
   );
-}
-
-export function getAssessmentDeliveryMode(): AssessmentDeliveryMode {
-  try {
-    return resolveAssessmentDeliveryMode(
-      process.env.EMAIL_DELIVERY_MODE,
-      process.env.NODE_ENV === "production",
-    );
-  } catch (error) {
-    throw new EmailDeliveryError(
-      error instanceof Error
-        ? error.message
-        : "Email delivery mode is not configured correctly.",
-    );
-  }
 }
 
 export function getApplicationUrl() {
@@ -86,12 +66,6 @@ export function getApplicationUrl() {
 export async function sendAssessmentEmail(
   input: AssessmentEmailInput,
 ): Promise<AssessmentEmailResult> {
-  const mode = getAssessmentDeliveryMode();
-
-  if (mode === "PREVIEW") {
-    return { mode, providerId: null };
-  }
-
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.EMAIL_FROM?.trim();
 
@@ -171,7 +145,6 @@ export async function sendAssessmentEmail(
   }
 
   return {
-    mode,
     providerId: payload.id,
   };
 }

@@ -492,7 +492,10 @@ export default async function PatientPage({
         >
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <h2 className="text-lg font-bold">Assessment history</h2>
-            <SendAssessmentButton patientId={patient.id} />
+            <SendAssessmentButton
+              patientEmail={patient.email}
+              patientId={patient.id}
+            />
           </div>
           <AssessmentScoreChart scores={completedScores} />
           {assessments.length === 0 ? (
@@ -514,10 +517,7 @@ export default async function PatientPage({
                         DSMA-8 v{assessment.questionnaireVersion}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        Sent {formatDateTimeUtc(assessment.sentAt)} ·{" "}
-                        {assessment.deliveryMode === "PREVIEW"
-                          ? "Preview"
-                          : "Email"}
+                        Sent {formatDateTimeUtc(assessment.sentAt)}
                       </p>
                     </div>
                     <span
