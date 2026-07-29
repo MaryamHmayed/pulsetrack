@@ -26,9 +26,11 @@ All accounts and clinical records in this challenge use fabricated data.
   sessions; patients do not have accounts.
 - Patient CRUD for name, date of birth, sex, MRN, email, and phone, with unique
   MRNs, server-side validation, search, FHIR-status filters, and pagination.
-- DSMA-8 delivery through Brevo with a random tokenized link, exact supplied
-  questions and scoring, seven-day expiry, single-use submission, and
-  clinician-visible `SENT`, `COMPLETED`, and `EXPIRED` history.
+- DSMA-8 delivery through Brevo's transactional email API with a random
+  tokenized link, exact supplied questions and scoring, seven-day expiry,
+  single-use submission, and clinician-visible `SENT`, `COMPLETED`, and
+  `EXPIRED` history. Delivery failures are surfaced without exposing provider
+  credentials.
 - Fixed CSV template download, row-level validation for missing fields, MRNs,
   dates, test codes, numeric values, and duplicates, plus partial import,
   persisted reports, and patient-specific CSV export.
@@ -45,9 +47,10 @@ All accounts and clinical records in this challenge use fabricated data.
   them to the remote patient.
 - Idempotently imports the five supplied read-only patients and their
   historical observations.
-- Uses server-only API-key authentication, timeouts, bounded retries,
-  `Retry-After`, safe Bundle pagination, stored remote IDs, ownership checks,
-  visible sync states, and manual retry actions.
+- Uses server-only API-key authentication, candidate-scoped conditional
+  creates, timeouts, bounded retries, `Retry-After`, safe Bundle pagination,
+  stored remote IDs, ownership checks, visible sync states, and manual retry
+  actions.
 
 ### Tier 3 — AI clinical review
 
@@ -97,7 +100,7 @@ Copy `.env.example` to `.env` and provide:
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=verify-full"
 APP_URL="http://localhost:3000"
 BREVO_API_KEY="xkeysib-your-key"
-BREVO_SENDER_EMAIL="pulsetrack.demo@gmail.com"
+BREVO_SENDER_EMAIL="your-verified-sender@example.com"
 BREVO_SENDER_NAME="PulseTrack"
 
 FHIR_BASE_URL="https://fhir-challenge.vihagent.net/fhir"
@@ -108,8 +111,9 @@ GEMINI_API_KEY="your-google-ai-studio-key"
 GEMINI_MODEL="gemini-3.1-flash-lite"
 ```
 
-`BREVO_SENDER_EMAIL` must exactly match a sender verified in Brevo. Keep the
-API key server-only and use only fabricated patient identities and test inboxes.
+`BREVO_SENDER_EMAIL` must exactly match a sender verified in Brevo. The API key
+is read only by server-side email code and must never use a `NEXT_PUBLIC_`
+prefix. Use only fabricated patient identities and test inboxes.
 
 ### 3. Prepare and run
 
@@ -166,7 +170,7 @@ flowchart LR
     end
 
     DB[(PostgreSQL)]
-    R[Brevo]
+    R[Brevo transactional email API]
     F[HAPI FHIR R4]
     G[Google Gemini]
 
@@ -195,13 +199,13 @@ flowchart LR
     FHIR[Shared HAPI FHIR R4 server]
 
     UI -->|Create or edit patient| APP
-    APP -->|Conditional POST or owned PUT Patient| FHIR
+    APP -->|Candidate-scoped conditional POST or owned PUT Patient| FHIR
     FHIR -->|Resource ID or bounded error| APP
     APP -->|Save sync state| DB
 
     UI -->|Upload CSV| APP
     APP -->|Store valid lab rows| DB
-    APP -->|Conditional POST Observation| FHIR
+    APP -->|Candidate-scoped conditional POST Observation| FHIR
     FHIR -->|Resource ID or bounded error| APP
 
     FHIR -->|Search seeded Patient and Observation Bundles| APP
