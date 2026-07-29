@@ -1,85 +1,87 @@
 # PulseTrack
 
-PulseTrack is a responsive remote patient monitoring platform for a diabetes
-clinic. Clinicians can manage patients, email the DSMA-8 self-assessment,
-import lab results from CSV, and monitor clinical activity through clinic and
-patient dashboards.
+PulseTrack is a responsive diabetes remote-monitoring platform built for the
+Capadev Software Engineer Challenge. It includes the required Tier 1 platform,
+the Tier 2 FHIR R4 integration, and an evidence-backed Tier 3 AI review.
 
-This repository contains the completed **Tier 1, Tier 2, and Tier 3** scope of
-the Capadev Software Engineer Challenge.
+| | Link |
+| --- | --- |
+| Live application | [pulsetrack-seven.vercel.app](https://pulsetrack-seven.vercel.app) |
+| Repository | [github.com/MaryamHmayed/pulsetrack](https://github.com/MaryamHmayed/pulsetrack) |
 
-- Repository: [github.com/MaryamHmayed/pulsetrack](https://github.com/MaryamHmayed/pulsetrack)
-- Live application: [pulsetrack-seven.vercel.app](https://pulsetrack-seven.vercel.app)
-
-## Test clinician
-
-The seed command creates this fabricated clinician account:
+## Test login
 
 | Field | Value |
 | --- | --- |
 | Email | `test@pulsetrack.dev` |
 | Password | `TestPassword123!` |
 
-Only fabricated patient and clinical data should be used with this application.
+All accounts and clinical records in this challenge use fabricated data.
 
-## Tier 1 coverage
+## Implemented scope
 
-| Requirement | Implementation |
-| --- | --- |
-| Authentication | Email/password clinician login backed by revocable, database-stored sessions |
-| Patient management | Create, read, update, and delete patients; unique MRN; server-side validation; search by name, MRN, email, or phone |
-| DSMA-8 assessment | Resend email delivery, unique tokenized public link, all eight required questions, exact supplied scoring, seven-day expiry, single-use submission, and clinician-visible history |
-| Lab CSV import | In-app template download, partial import, persisted row-level report, duplicate protection, and patient-specific CSV export |
-| Patient dashboard | Glucose and HbA1c time-series charts with reference ranges, lab history, and assessment-score history |
-| Clinic dashboard | Aggregate counts, completion rate, latest patient risk-band distribution, recent imports, and an upload-date filter |
-| UX states | Responsive layouts plus intentional loading, empty, validation, and error states |
+### Tier 1
 
-## Tier 2 FHIR coverage
+- Clinician email/password authentication using revocable, hashed database
+  sessions; patients do not have accounts.
+- Patient CRUD for name, date of birth, sex, MRN, email, and phone, with unique
+  MRNs, server-side validation, search, FHIR-status filters, and pagination.
+- DSMA-8 delivery through Resend with a random tokenized link, exact supplied
+  questions and scoring, seven-day expiry, single-use submission, and
+  clinician-visible `SENT`, `COMPLETED`, and `EXPIRED` history.
+- Fixed CSV template download, row-level validation for missing fields, MRNs,
+  dates, test codes, numeric values, and duplicates, plus partial import,
+  persisted reports, and patient-specific CSV export.
+- Patient charts for glucose, HbA1c, and assessment scores.
+- Clinic metrics for assessment completion and patient risk bands, plus recent
+  lab imports with an upload-date filter.
+- Responsive layouts with explicit loading, empty, validation, and error
+  states.
 
-| Requirement | Implementation |
-| --- | --- |
-| Patient push | Local patient creation uses an idempotent conditional `Patient` create; later edits update the specific candidate-owned FHIR resource |
-| Observation push | Every accepted local CSV row is mapped to a LOINC-coded `Observation` linked to the patient's FHIR resource |
-| Historical pull | An idempotent administrative command imports the five supplied MRNs and their 180 historical observations into the existing patient dashboards |
-| Idempotency | Conditional creates, stored FHIR resource IDs, database uniqueness constraints, and import matching prevent duplicate patients and observations |
-| External API handling | Server-only API-key authentication, ten-second request timeouts, bounded retries, `Retry-After` support, safe pagination, validated FHIR responses, and visible per-resource failure states |
-| Shared-server isolation | Candidate-owned resources may be updated; imported seed resources are marked read-only and never written back |
+### Tier 2 — FHIR R4
 
-## Tier 3 AI coverage
+- Creates and updates candidate-owned FHIR `Patient` resources.
+- Creates FHIR `Observation` resources for accepted CSV lab results and links
+  them to the remote patient.
+- Idempotently imports the five supplied read-only patients and their
+  historical observations.
+- Uses server-only API-key authentication, timeouts, bounded retries,
+  `Retry-After`, safe Bundle pagination, stored remote IDs, ownership checks,
+  visible sync states, and manual retry actions.
 
-| Requirement | Implementation |
-| --- | --- |
-| Useful clinical feature | An on-demand evidence-backed review summarizes recorded changes, connects lab and DSMA-8 patterns when both exist, identifies areas for clinician review, and suggests follow-up questions |
-| Grounding | The model receives a bounded anonymous snapshot of application-computed lab trends, supplied reference ranges, and completed DSMA-8 scores |
-| Citation enforcement | Every generated statement must cite one or more exact evidence IDs; unknown or missing citations reject the complete response |
-| Cross-domain synthesis | When both domains exist, the model must classify their relationship as aligned, divergent, complementary, or limited; explain its clinical relevance; and cite at least one result from each domain |
-| Hallucination controls | Gemini is prohibited from diagnosing, prescribing, inferring causes, or introducing external thresholds; malformed, truncated, blocked, or oversized output is rejected |
-| Privacy minimization | Names, MRNs, contact details, database IDs, FHIR IDs, and raw questionnaire tokens are never sent to Gemini |
-| Auditability | Validated reviews retain the model, generation time, data-through date, anonymous evidence, output, and an input fingerprint |
-| Freshness and cost control | Reviews are reused for identical evidence, visibly marked stale after relevant data changes, and limited to five new saved reviews per clinician per hour |
+### Tier 3 — AI clinical review
 
-## Technology
+- Gemini produces an on-demand review grounded only in recorded lab and
+  completed DSMA-8 evidence.
+- The application computes numeric trends and scores before the model call.
+- Direct identifiers are excluded from the prompt.
+- Every statement must cite valid `LAB-*` or `ASM-*` evidence; invalid output is
+  rejected.
+- Cross-domain output links objective lab trends with reported self-management
+  risk without diagnosing, prescribing, or claiming causation.
+- Reviews are auditable, reused for unchanged evidence, marked stale after new
+  data, and rate-limited.
 
-- Next.js 16 App Router and React 19
-- TypeScript
-- PostgreSQL
-- Prisma ORM 7 with the PostgreSQL driver adapter
-- Tailwind CSS 4
-- Resend transactional email API
-- Google Gemini 3.1 Flash-Lite through the server-side REST API
-- Node.js built-in test runner
+## Stack
+
+- Next.js 16 App Router, React 19, TypeScript, and Tailwind CSS 4
+- PostgreSQL with Prisma ORM 7 and the PostgreSQL driver adapter
+- Resend email API
+- HAPI FHIR R4
+- Google Gemini 3.1 Flash-Lite
+- Vercel
 
 ## Local setup
 
 ### Prerequisites
 
-- Node.js 22 or newer
-- npm
-- A PostgreSQL database
-- A Resend account and API key for real email delivery
-- A free-tier Gemini API key from Google AI Studio for Tier 3
+- Node.js 22+
+- PostgreSQL
+- Resend API key
+- Challenge FHIR base URL, candidate ID, and API key
+- Google AI Studio API key for Tier 3
 
-### 1. Install the project
+### 1. Install
 
 ```bash
 git clone https://github.com/MaryamHmayed/pulsetrack.git
@@ -87,257 +89,128 @@ cd pulsetrack
 npm ci
 ```
 
-### 2. Configure the environment
+### 2. Configure
 
-Copy `.env.example` to `.env`, then set:
+Copy `.env.example` to `.env` and provide:
 
 ```dotenv
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=verify-full"
 APP_URL="http://localhost:3000"
 RESEND_API_KEY="re_your_key"
 EMAIL_FROM="PulseTrack <onboarding@resend.dev>"
+
 FHIR_BASE_URL="https://fhir-challenge.vihagent.net/fhir"
 FHIR_CANDIDATE_ID="cand-your-id"
 FHIR_API_KEY="your-personal-api-key"
+
 GEMINI_API_KEY="your-google-ai-studio-key"
 GEMINI_MODEL="gemini-3.1-flash-lite"
 ```
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQL connection used by Prisma |
-| `APP_URL` | Origin placed in assessment links; must be the deployed HTTPS URL in production |
-| `RESEND_API_KEY` | Server-only Resend credential |
-| `EMAIL_FROM` | Sender accepted by Resend |
-| `FHIR_BASE_URL` | HTTPS base URL of the HAPI FHIR R4 server |
-| `FHIR_CANDIDATE_ID` | Candidate ownership tag issued with the challenge |
-| `FHIR_API_KEY` | Personal server-only credential sent as `X-API-Key` |
-| `GEMINI_API_KEY` | Server-only Google AI Studio credential |
-| `GEMINI_MODEL` | Gemini model used for saved clinical reviews; defaults to `gemini-3.1-flash-lite` |
+`onboarding@resend.dev` can send only to the inbox associated with the Resend
+account. Use a verified sender domain for other recipients. When testing, use
+an inbox you own with a fabricated patient identity.
 
-`onboarding@resend.dev` is Resend's testing sender and can deliver only to the
-email address associated with the Resend account. To test with it, update a
-fabricated patient's email in PulseTrack to that address. A verified sender
-domain is required to deliver to arbitrary recipients.
-
-Never commit `.env` or expose `RESEND_API_KEY` or `FHIR_API_KEY` to browser
-code. `GEMINI_API_KEY` must remain server-only as well.
-
-Gemini's free tier may use submitted content to improve Google's products.
-PulseTrack therefore sends only minimized, de-identified snapshots and this
-challenge must contain fabricated data only. A real healthcare deployment
-would require an approved provider agreement, privacy and security review,
-regional controls, retention guarantees, and confirmation that submitted
-clinical data is not used for provider training.
-
-### 3. Prepare the database and start the app
+### 3. Prepare and run
 
 ```bash
-npx prisma generate
 npx prisma migrate deploy
 npm run seed
 npm run fhir:import-history -- test@pulsetrack.dev
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and sign in with the test
-clinician above.
+Open [http://localhost:3000](http://localhost:3000) and use the test login
+above. The seed and historical FHIR import are idempotent.
 
-The seed is idempotent: it upserts the test clinician and three fabricated
-patients instead of creating duplicates. The FHIR history command is also
-idempotent and requires the target clinician email explicitly; repeat runs
-match existing remote IDs and clinical keys rather than creating duplicates.
-
-Confirm the configured FHIR connection before testing synchronization:
+### 4. Verify
 
 ```bash
 npm run fhir:check
-```
-
-Confirm the configured Gemini model with a fabricated evidence snapshot before
-using a patient record:
-
-```bash
 npm run ai:check
-```
-
-The command prints only the model name and validated citation counts; it does
-not read or print patient data.
-
-## Verification
-
-```bash
 npm test
 npm run lint
 npm run build
 ```
 
-The automated tests cover assessment-token security, DSMA-8 scoring
-boundaries, patient validation, CSV parsing and row validation, lab export
-safety, date ranges, chart calculations, dashboard metrics, email-provider
-errors, FHIR configuration and mappings, authenticated transport,
-pagination, retries, ownership checks, historical-resource selection,
-idempotency helpers, bounded provider errors, anonymous AI evidence snapshots,
-input fingerprinting, structured Gemini responses, and citation validation.
-
 ## Reviewer walkthrough
 
-1. Sign in as the seeded test clinician.
-2. Search the patient list, create a patient, edit it, and inspect its detail
-   page.
-3. Set a fabricated patient's email to the permitted test inbox and click
-   **Send assessment**.
-4. Open the emailed link, answer all eight questions, and submit it.
-5. Reopen the link to verify that it is single-use, then inspect the score and
-   risk band in the patient's assessment history.
-6. Open **Lab results**, download the fixed template, and upload a CSV.
-7. Inspect accepted and rejected rows in the validation report. Re-upload the
-   same file to verify duplicate rejection.
-8. Review the imported results and trend charts on the matching patient, then
-   download that patient's accepted results as CSV.
-9. Review clinic metrics and filter recent uploads by date.
-10. Create a new patient and confirm its badge changes to **FHIR synced**.
-    Edit it and confirm the same FHIR resource is updated.
-11. Upload a new lab row for that patient and confirm its Observation badge is
-    **Synced**. Re-upload the row to confirm duplicate rejection.
-12. Confirm the five FHIR-history patients and their 180 read-only
-    observations appear alongside local records in patient and clinic
-    dashboards. Run the administrative import command again and confirm its
-    summary reports that existing records were skipped.
-13. On a patient with labs or a completed assessment, generate an
-    **Evidence-backed clinical review**. Open its evidence list and select each
-    citation badge to verify that it focuses the supporting value.
-    When both labs and completed assessments exist, confirm the **Combined
-    perspective** cites at least one `LAB-*` and one `ASM-*` item.
-14. Add a new lab result and return to the patient. Confirm the saved review is
-    marked **New data available**, then refresh it.
+1. Sign in and create, search, edit, and inspect a patient.
+2. Set a fabricated patient's email to an inbox you own and send the DSMA-8.
+   Submit all eight answers, then reopen the link to confirm it is single-use.
+3. Download the lab template and upload a CSV containing valid and invalid
+   rows. Review the per-row reasons and confirm valid rows still import.
+4. Upload the same file again and confirm duplicate rows are rejected without
+   creating additional results.
+5. Inspect patient lab and assessment charts, then review clinic metrics and
+   filter recent imports by date.
+6. Create or edit a local patient and confirm FHIR synchronization. Import a
+   lab result and confirm its linked Observation status.
+7. Confirm the five read-only FHIR-history patients appear alongside local
+   records. Re-run the import command to verify idempotency.
+8. Generate an AI review, open its cited evidence, and add new clinical data to
+   confirm the review becomes stale.
 
-## FHIR synchronization
-
-PulseTrack implements the required subset of FHIR R4: `Patient`,
-`Observation`, and search `Bundle` pagination.
-
-- Reference: [FHIR R4 Patient](https://hl7.org/fhir/R4/patient.html),
-  [Observation](https://hl7.org/fhir/R4/observation.html), and
-  [Search](https://hl7.org/fhir/R4/search.html).
-- MRNs use the identifier system
-  `https://challenge.capadev.dev/mrn`.
-- Local test codes map to LOINC: `GLU-F` to `1558-6`, `HBA1C` to `4548-4`,
-  and `SBP` to `8480-6`.
-- Observation values use UCUM quantities and reference the remote patient as
-  `Patient/<id>`.
-- Patient creation uses `POST Patient` with `If-None-Exist` on the MRN.
-  Candidate-owned updates use `PUT Patient/<id>`.
-- Observation creation uses `If-None-Exist` with a stable identifier derived
-  from the local lab-result ID.
-- Historical import searches MRNs `MRN-2001` through `MRN-2005`, follows every
-  safe same-origin `next` link, and requires the expected 36 seed observations
-  per patient before writing locally.
-- Imported seed patients and observations retain their remote resource IDs
-  and are marked `READ_ONLY`. Clinicians may maintain local contact details,
-  but PulseTrack never sends those local edits back to a seed resource.
-
-Every request sends `X-API-Key` and requests FHIR JSON. The transport times out
-after ten seconds and makes up to three attempts for connection failures,
-`429`, `502`, `503`, and `504` responses. It honors bounded `Retry-After`
-values and otherwise uses exponential backoff. Safe, bounded
-`OperationOutcome` diagnostics are stored for failed local resources and shown
-to the clinician; credentials and request bodies are not logged.
-
-## CSV contract
-
-The downloadable template uses these headers in this exact order:
-
-```text
-mrn,collected_date,test_code,test_name,value,unit,ref_low,ref_high
-```
-
-Supported test codes are:
-
-| Code | Test |
-| --- | --- |
-| `GLU-F` | Fasting Glucose |
-| `HBA1C` | Hemoglobin A1c |
-| `SBP` | Systolic Blood Pressure |
-
-Every non-empty row is evaluated independently. A row is rejected with one or
-more specific reasons for:
-
-- an incorrect column count or missing required fields;
-- an unknown MRN;
-- a malformed or future collection date;
-- an unknown test code;
-- non-numeric or out-of-range decimal values;
-- a reference low value greater than its reference high value; or
-- a duplicate MRN + collection date + test code, either in the same file or
-  already stored.
-
-Valid rows are committed even when other rows fail. Imports and their complete
-validation reports are retained for later review. A database unique constraint
-and a serializable import transaction protect against duplicates created by
-concurrent requests. Uploaded files are limited to 1 MB and the raw file itself
-is not retained.
-
-## Assessment lifecycle
-
-1. A clinician sends an assessment from a patient record.
-2. PulseTrack generates 32 random bytes, puts the raw token only in the emailed
-   URL, and stores its SHA-256 hash.
-3. The assessment is saved as `SENT` with an expiry exactly seven days later.
-4. If email delivery fails, the pending assessment is removed and the clinician
-   receives a clear, bounded error.
-5. The public page validates all eight answers and calculates the supplied
-   DSMA-8 score and risk band.
-6. A serializable transaction changes `SENT` to `COMPLETED` exactly once.
-   Expired links are persisted as `EXPIRED`; completed or expired links cannot
-   submit again.
-
-Resend requests use the assessment ID as an idempotency key and the returned
-provider ID is retained for delivery auditing.
-
-## Architecture and FHIR integration diagram
+## Architecture
 
 ```mermaid
 flowchart LR
     C[Clinician browser]
     P[Patient browser]
 
-    subgraph PT[PulseTrack on Vercel]
+    subgraph V[PulseTrack on Vercel]
         N[Next.js App Router]
-        S[Server Components and Server Actions]
-        D[Authenticated domain services]
-        F[FHIR R4 client and mappers]
-        O[Prisma Client and PostgreSQL adapter]
+        A[Server Components and Server Actions]
+        S[Clinician-scoped services]
+        O[Prisma Client]
     end
 
     DB[(PostgreSQL)]
-    R[Resend API]
-    H[Shared HAPI FHIR R4 server]
-    G[Google Gemini API]
+    R[Resend]
+    F[HAPI FHIR R4]
+    G[Google Gemini]
 
-    C -->|HTTPS and session cookie| N
-    P -->|HTTPS and single-use token| N
-    N --> S
-    S --> D
-    D --> O
-    O -->|parameterized queries| DB
-    D -->|idempotent email request| R
-    R -->|assessment email| P
-    D --> F
-    F -->|POST or PUT Patient| H
-    F -->|POST Observation| H
-    H -->|Patient and Observation search Bundles| F
-    F -->|validated mapped records| O
-    D -->|bounded de-identified evidence snapshot| G
-    G -->|schema-constrained cited review| D
+    C -->|HTTPS + session cookie| N
+    P -->|HTTPS + single-use token| N
+    N --> A --> S
+    S --> O --> DB
+    S -->|assessment email| R
+    S <-->|Patient and Observation| F
+    S -->|de-identified evidence| G
+    G -->|schema-constrained review| S
 ```
 
-The Next.js application is the only component that accesses PostgreSQL or
-provider credentials. Server Components perform reads and Server Actions
-handle mutations; both call clinician-scoped services before using Prisma or
-the FHIR client. The public assessment route has no patient login; possession
-of the high-entropy, expiring, single-use token is its narrowly scoped
-authorization.
+Database and provider credentials are available only to server code. Every
+clinician-facing read and mutation is scoped to the authenticated clinician.
+The public assessment route grants access only to one assessment through its
+high-entropy, expiring token.
+
+## FHIR integration flow
+
+```mermaid
+flowchart LR
+    UI[Clinician action]
+    APP[PulseTrack]
+    DB[(PostgreSQL)]
+    FHIR[Shared HAPI FHIR R4 server]
+
+    UI -->|Create or edit patient| APP
+    APP -->|Conditional POST or owned PUT Patient| FHIR
+    FHIR -->|Resource ID or bounded error| APP
+    APP -->|Save sync state| DB
+
+    UI -->|Upload CSV| APP
+    APP -->|Store valid lab rows| DB
+    APP -->|Conditional POST Observation| FHIR
+    FHIR -->|Resource ID or bounded error| APP
+
+    FHIR -->|Search seeded Patient and Observation Bundles| APP
+    APP -->|Validate, map, and idempotently import as read-only| DB
+```
+
+Local test codes map to LOINC (`GLU-F` → `1558-6`, `HBA1C` → `4548-4`,
+`SBP` → `8480-6`). Candidate-owned resources can be updated; shared seed
+resources remain read-only.
 
 ## Entity relationship diagram
 
@@ -356,244 +229,94 @@ erDiagram
         string id PK
         string email UK
         string passwordHash
-        string name
-        datetime createdAt
-        datetime updatedAt
     }
-
     SESSION {
         string id PK
         string clinicianId FK
         string tokenHash UK
         datetime expiresAt
-        datetime createdAt
-        datetime lastActiveAt
     }
-
     PATIENT {
         string id PK
         string clinicianId FK
+        string mrn UK
         string fullName
         date dob
-        enum sex
-        string mrn UK
-        string email
-        string phone
         string fhirResourceId UK
-        enum fhirOwnership
         enum fhirSyncStatus
-        datetime fhirLastSyncedAt
-        string fhirLastError
-        datetime createdAt
-        datetime updatedAt
     }
-
     ASSESSMENT {
         string id PK
         string patientId FK
-        string questionnaireId
-        string questionnaireVersion
         string tokenHash UK
         enum status
-        enum deliveryMode
-        string emailProviderId
-        datetime sentAt
         datetime expiresAt
-        datetime completedAt
-        json responses
         int score
         enum riskBand
     }
-
     LAB_IMPORT {
         string id PK
         string clinicianId FK
-        string fileName
-        int totalRows
         int acceptedCount
         int rejectedCount
         json report
-        datetime createdAt
     }
-
     LAB_RESULT {
         string id PK
         string patientId FK
         string importId FK
         date collectedDate
         string testCode
-        string testName
         decimal value
-        string unit
-        decimal refLow
-        decimal refHigh
-        enum source
         string fhirResourceId UK
-        enum fhirSyncStatus
-        datetime fhirLastSyncedAt
-        string fhirLastError
-        datetime createdAt
     }
-
     CLINICAL_REVIEW {
         string id PK
         string patientId FK
         string clinicianId FK
         string inputHash
-        string model
         json evidence
         json review
-        date dataThrough
-        datetime generatedAt
     }
 ```
 
-The lab-result uniqueness rule is the composite
-`(patientId, collectedDate, testCode)`.
+Lab results are unique by `(patientId, collectedDate, testCode)`.
 
-## Security notes
+## Security
 
-- Passwords are hashed with bcrypt. Login performs a dummy bcrypt comparison
-  when the email is unknown to reduce account-enumeration timing differences.
-- Session and assessment tokens are generated with a cryptographically secure
-  random source; only SHA-256 hashes are stored.
-- Session cookies are `HttpOnly`, `SameSite=Lax`, scoped to the application,
-  expire after 12 hours, and are `Secure` in production.
-- Every clinician-facing patient, assessment, lab, import, export, and
-  dashboard query is scoped to the authenticated clinician.
-- Prisma parameterizes database operations. Multi-record assessment and import
-  mutations use serializable transactions where concurrency affects
-  correctness.
-- Patient input and CSV data are validated on the server. CSV downloads escape
-  quotes and neutralize spreadsheet formulas.
-- Raw CSV uploads are not stored, filenames are sanitized, provider errors are
-  bounded, and sensitive values are not intentionally logged.
-- FHIR credentials are read only on the server. Pagination links are restricted
-  to the configured HTTPS FHIR origin and path so authentication cannot leak to
-  an attacker-controlled host.
-- Candidate ownership is checked before remote updates. Shared seed resources
-  are stored as read-only, and their MRNs are locked locally and enforced
-  during the authenticated database update.
-- Gemini is invoked only from an authenticated, clinician-scoped server
-  service. Direct identifiers are removed before the request, request size is
-  bounded, output follows a strict schema, and every citation is checked
-  against the exact supplied evidence before persistence.
-- Secrets remain server-side and environment files are ignored by Git.
+- Passwords use bcrypt; session and assessment tokens are random and stored
+  only as SHA-256 hashes.
+- Session cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` in production.
+- Prisma uses parameterized queries; concurrency-sensitive imports and
+  assessment completion use serializable transactions.
+- Patient, CSV, and questionnaire inputs are validated on the server.
+- Secrets remain server-only and `.env` files are ignored by Git.
+- FHIR ownership is checked before updates; credentials are never placed in
+  logs or cross-origin pagination requests.
+- Gemini receives bounded, de-identified evidence and its citations are
+  validated before persistence.
 
 This is a challenge application using fabricated data, not a certified medical
-device or a production clinical record system.
+device or production clinical record system.
 
 ## Decisions & tradeoffs
 
-### Database-backed sessions
-
-A small hand-rolled session layer keeps the authentication flow easy to audit:
-the browser receives a random opaque cookie while the database stores only its
-hash. It also allows immediate logout and revocation. For a production clinic,
-I would use a mature identity provider or Auth.js and add MFA, password reset,
-rate limiting, role-based access, session rotation, and security audit events.
-
-### Server-first Next.js design
-
-Server Components and Server Actions keep database access, authorization, and
-secrets out of the client bundle. The tradeoff is tighter coupling to Next.js.
-For multiple clients or partner integrations, I would introduce a versioned API
-boundary and a dedicated service layer.
-
-### Strict, partially successful CSV imports
-
-The importer rejects ambiguous data instead of guessing, but still imports
-independently valid rows. The complete report is persisted so clinicians can
-correct and re-upload failures safely. Processing the entire file in memory is
-reasonable behind the 1 MB limit; larger production imports should use
-streaming parsing, object storage, background jobs, and import progress.
-
-### Explicit email failure instead of a hidden fallback
-
-Production always attempts real delivery. Provider failures are surfaced and
-the unsent assessment is removed, avoiding a misleading `SENT` record. Resend's
-free testing domain is sufficient for an owned test inbox but cannot send to
-arbitrary recipients. With more time, I would verify a dedicated sending
-subdomain, add delivery-status webhooks, queue retries with exponential
-backoff, and provide a controlled resend action.
-
-### Lazy assessment expiry
-
-Expiry is enforced against the timestamp during every public access and
-submission, so an expired token can never be used. `EXPIRED` is persisted when
-the public assessment, patient history, or clinic dashboard is read. At larger
-scale, a scheduled job would materialize expiry proactively for reporting.
-
-### Synchronous FHIR synchronization
-
-Patient and CSV workflows attempt FHIR synchronization immediately, which
-keeps challenge behavior easy to observe and gives clinicians a clear
-per-resource status. The transport retries temporary failures, while permanent
-failures leave the local record intact with a bounded error instead of losing
-clinic work. A production national integration should use an outbox and
-background workers with durable retries, dead-letter handling, monitoring, and
-an explicit manual retry control.
-
-### Administrative historical import
-
-Historical data is provisioned with an explicit administrative command instead
-of a routine clinician-facing control. The command requires a clinician email,
-then fetches and validates all five remote patient packages before opening a
-short serializable database transaction. Re-running it matches resource IDs and
-clinical uniqueness keys instead of duplicating data. A larger recurring feed
-should run as a monitored background job using incremental synchronization
-based on FHIR history or `_lastUpdated` cursors.
-
-### Evidence-backed AI instead of autonomous advice
-
-The AI feature is intentionally a review aid rather than a diagnosis engine or
-open-ended patient chat. PulseTrack calculates numeric trends and assessment
-scores itself, removes direct identifiers, and asks Gemini only to organize the
-bounded evidence. Structured output improves reliability, but is not treated
-as proof of factual correctness: the server validates every evidence ID and
-the UI keeps supporting values one click away. Reviews are persisted with an
-input fingerprint so clinicians can see when newer data makes a review stale.
-When both clinical domains are present, the response contract requires one
-combined perspective that classifies and explains the relationship between the
-objective lab trajectory and reported self-management risk. It must cite lab
-and assessment evidence while expressly forbidding causal language.
-
-The tradeoff is that evidence citations cannot prove that the model interpreted
-the cited value correctly. The clinician remains responsible for verification,
-and the UI explicitly avoids presenting the output as a diagnosis or treatment
-recommendation. A production clinical deployment would additionally require
-formal model evaluation, prompt/version governance, audit events, adverse-event
-monitoring, human-factors testing, and a healthcare-approved provider contract.
-
-### Healthcare lifecycle
-
-Deleting a patient currently cascades to their assessments and lab results,
-which keeps this fabricated challenge dataset simple. A real clinical system
-would normally use retention policies, soft deletion, immutable audit trails,
-consent handling, backups, and an approved data-governance process.
+| Decision | Rationale and next step |
+| --- | --- |
+| Opaque database sessions | Simple to audit and immediately revocable. A production clinic would add a mature identity provider, MFA, password reset, rate limiting, and security audit events. |
+| Strict partial CSV import | Valid rows are retained while ambiguous rows receive explicit reasons. Larger files would use streaming, object storage, and background processing. |
+| Immediate FHIR synchronization | Makes status and failures visible during the challenge. Production would use an outbox, durable workers, dead-letter handling, and monitoring. |
+| Read-only historical FHIR data | Preserves shared-server ownership while allowing local contact details. A recurring feed would use monitored incremental synchronization. |
+| Evidence-backed AI | Keeps output narrow, cited, and clinician-verifiable. Clinical deployment would require formal evaluation, prompt/version governance, human-factors testing, and an approved provider agreement. |
+| No hard deletion of lab imports | Preserves clinical and synchronization history. Production would use a reasoned void/correction workflow and retention policy. |
 
 ## Deployment
 
-1. Create a PostgreSQL database and run `npx prisma migrate deploy` against its
-   production `DATABASE_URL`.
-2. Import this repository into Vercel.
-3. Add `DATABASE_URL`, `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`,
-   `FHIR_BASE_URL`, `FHIR_CANDIDATE_ID`, `FHIR_API_KEY`, `GEMINI_API_KEY`, and
-   `GEMINI_MODEL` to the Vercel Production environment.
-4. Set `APP_URL` to the final `https://...vercel.app` origin.
-5. Keep Vercel's detected `npm run build` build command. The `postinstall`
-   script generates Prisma Client during dependency installation.
-6. Deploy and run `npm run seed` once against the production database.
-7. Run `npm run fhir:import-history -- test@pulsetrack.dev` against that same
-   production configuration.
-8. Verify login, email delivery, CSV import, FHIR push/pull, AI generation and
-   citations, and responsive layouts.
+1. Import the repository into Vercel.
+2. Add the environment variables listed above and set `APP_URL` to the final
+   HTTPS deployment origin.
+3. Deploy, run `npm run seed` against the production database, and run
+   `npm run fhir:import-history -- test@pulsetrack.dev`.
+4. Verify login, email delivery, CSV import, FHIR push/pull, and AI citations.
 
-Do not place secrets in `NEXT_PUBLIC_...` variables. Keep the Vercel production
-database and email credentials separate from local development credentials.
-
-## Scope
-
-Tier 1, Tier 2, and the evidence-backed Tier 3 AI bonus are implemented. The
-submission prioritizes a complete, testable clinical workflow, carefully
-bounded external integrations, and human-verifiable AI output.
+Do not expose any secret through a `NEXT_PUBLIC_` variable.
