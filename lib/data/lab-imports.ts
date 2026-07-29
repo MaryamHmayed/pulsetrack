@@ -17,6 +17,7 @@ import {
   readLabUploadReport,
   type LabUploadReport,
 } from "@/lib/labs/report";
+import { DEFAULT_PAGE_SIZE, getTotalPages } from "@/lib/pagination";
 
 export type LabImportResult = LabCsvValidationReport & {
   importId: string;
@@ -226,13 +227,21 @@ export async function getLabImportReport(importId: string) {
   };
 }
 
-export async function listLabImports() {
+export async function listLabImports(requestedPage = 1) {
   const clinician = await requireClinician();
+  const where = {
+    clinicianId: clinician.id,
+    acceptedCount: { gt: 0 },
+  };
+  const totalItems = await db.labImport.count({ where });
+  const totalPages = getTotalPages(totalItems, DEFAULT_PAGE_SIZE);
+  const page = Math.min(Math.max(1, requestedPage), totalPages);
 
-  return db.labImport.findMany({
-    where: { clinicianId: clinician.id },
+  const items = await db.labImport.findMany({
+    where,
     orderBy: { createdAt: "desc" },
-    take: 25,
+    skip: (page - 1) * DEFAULT_PAGE_SIZE,
+    take: DEFAULT_PAGE_SIZE,
     select: {
       id: true,
       fileName: true,
@@ -243,4 +252,12 @@ export async function listLabImports() {
       report: true,
     },
   });
+
+  return {
+    items,
+    page,
+    pageSize: DEFAULT_PAGE_SIZE,
+    totalItems,
+    totalPages,
+  };
 }

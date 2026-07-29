@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PaginationNav } from "@/app/ui/pagination-nav";
 import { getPatient } from "@/lib/data/patients";
 import { getAssessmentHistory } from "@/lib/data/assessments";
 import { getPatientLabResults } from "@/lib/data/lab-results";
 import { getLatestPatientClinicalReview } from "@/lib/ai/reviews";
 import { formatDateTimeUtc } from "@/lib/format/date";
+import { paginateItems, parsePage } from "@/lib/pagination";
 import { DeletePatientButton } from "../delete-patient-button";
 import { PatientFhirRetryButton } from "../fhir-retry-button";
 import { SendAssessmentButton } from "../send-assessment-button";
@@ -91,10 +93,16 @@ function getAge(dob: Date) {
 
 export default async function PatientPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{
+    assessmentsPage?: string | string[];
+    labsPage?: string | string[];
+  }>;
 }) {
   const { id } = await params;
+  const query = await searchParams;
   const patient = await getPatient(id);
 
   if (!patient) {
@@ -124,6 +132,16 @@ export default async function PatientPage({
         ]
       : [],
   );
+  const labPage = paginateItems(labResults, parsePage(query.labsPage));
+  const assessmentPage = paginateItems(
+    assessments,
+    parsePage(query.assessmentsPage),
+  );
+  const paginationQuery = {
+    assessmentsPage:
+      assessmentPage.page > 1 ? String(assessmentPage.page) : undefined,
+    labsPage: labPage.page > 1 ? String(labPage.page) : undefined,
+  };
 
   return (
     <main className="app-page">
@@ -363,7 +381,7 @@ export default async function PatientPage({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {labResults.map((result) => (
+                    {labPage.items.map((result) => (
                       <tr className="transition hover:bg-[#f6fbfc]" key={result.id}>
                         <td className="whitespace-nowrap px-4 py-4">
                           {formatDate(result.collectedDate)}
@@ -420,7 +438,7 @@ export default async function PatientPage({
                 </table>
               </div>
               <ul className="divide-y divide-slate-100 md:hidden">
-                {labResults.map((result) => (
+                {labPage.items.map((result) => (
                   <li className="p-4" key={result.id}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -482,6 +500,15 @@ export default async function PatientPage({
                   </li>
                 ))}
               </ul>
+              <PaginationNav
+                basePath={`/patients/${patient.id}`}
+                currentPage={labPage.page}
+                fragment="lab-results"
+                label="Patient lab result pages"
+                pageParam="labsPage"
+                query={paginationQuery}
+                totalPages={labPage.totalPages}
+              />
             </div>
           )}
         </section>
@@ -508,9 +535,10 @@ export default async function PatientPage({
               </p>
             </div>
           ) : (
-            <ul className="mt-6 divide-y divide-slate-100 rounded-xl border border-slate-200">
-              {assessments.map((assessment) => (
-                <li className="p-4" key={assessment.id}>
+            <div className="mt-6 overflow-hidden rounded-xl border border-slate-200">
+              <ul className="divide-y divide-slate-100">
+                {assessmentPage.items.map((assessment) => (
+                  <li className="p-4" key={assessment.id}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold">
@@ -541,9 +569,19 @@ export default async function PatientPage({
                       Expires {formatDateTimeUtc(assessment.expiresAt)}
                     </p>
                   ) : null}
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+              <PaginationNav
+                basePath={`/patients/${patient.id}`}
+                currentPage={assessmentPage.page}
+                fragment="assessments"
+                label="Patient assessment history pages"
+                pageParam="assessmentsPage"
+                query={paginationQuery}
+                totalPages={assessmentPage.totalPages}
+              />
+            </div>
           )}
         </section>
       </div>

@@ -67,6 +67,7 @@ export async function getClinicDashboardData(
     db.labImport.findMany({
       where: {
         clinicianId: clinician.id,
+        acceptedCount: { gt: 0 },
         createdAt:
           dateFilter.from || dateFilter.toExclusive
             ? {

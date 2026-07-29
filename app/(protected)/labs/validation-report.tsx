@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 import { Icon } from "@/app/ui/icons";
 import type { LabUploadReport } from "@/lib/labs/report";
+import { getPaginationPages, paginateItems } from "@/lib/pagination";
 
 type RowFilter = "ALL" | "ACCEPTED" | "REJECTED";
+const REPORT_PAGE_SIZE = 20;
 
 function SummaryCard({
   label,
@@ -29,9 +31,81 @@ function SummaryCard({
   );
 }
 
+function ReportPagination({
+  currentPage,
+  onPageChange,
+  totalPages,
+}: {
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  totalPages: number;
+}) {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  const pages = getPaginationPages(currentPage, totalPages);
+
+  return (
+    <nav
+      aria-label="Validation report pages"
+      className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <p className="text-xs font-medium text-slate-500">
+        Page {currentPage} of {totalPages}
+      </p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          className="button-secondary min-h-9 px-3 py-1.5 text-sm"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          type="button"
+        >
+          Previous
+        </button>
+        {pages.map((page, index) => {
+          const previousPage = pages[index - 1];
+
+          return (
+            <span className="contents" key={page}>
+              {previousPage && page - previousPage > 1 ? (
+                <span aria-hidden="true" className="px-1 text-slate-400">
+                  …
+                </span>
+              ) : null}
+              <button
+                aria-current={page === currentPage ? "page" : undefined}
+                aria-label={`Page ${page}`}
+                className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-2 text-sm font-semibold transition ${
+                  page === currentPage
+                    ? "border-teal-700 bg-teal-700 text-white"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:bg-teal-50"
+                }`}
+                onClick={() => onPageChange(page)}
+                type="button"
+              >
+                {page}
+              </button>
+            </span>
+          );
+        })}
+        <button
+          className="button-secondary min-h-9 px-3 py-1.5 text-sm"
+          disabled={currentPage === totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          type="button"
+        >
+          Next
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 export function ValidationReport({ report }: { report: LabUploadReport }) {
   const [filter, setFilter] = useState<RowFilter>("ALL");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const filteredRows = useMemo(
     () =>
@@ -55,6 +129,10 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
       }),
     [filter, normalizedSearch, report.rows],
   );
+  const paginatedRows = useMemo(
+    () => paginateItems(filteredRows, page, REPORT_PAGE_SIZE),
+    [filteredRows, page],
+  );
 
   return (
     <section aria-labelledby="validation-report-title">
@@ -67,8 +145,9 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
           Row validation report
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          Rejected rows were not stored. Correct them and upload the file again;
-          previously imported rows will be rejected as duplicates.
+          {report.acceptedCount === 0
+            ? "No rows were stored. Review the reasons below and upload a corrected file. This validation-only attempt will not appear in recent imports."
+            : "Rejected rows were not stored. Correct them and upload the file again; previously imported rows will be rejected as duplicates."}
         </p>
       </div>
 
@@ -121,7 +200,10 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
                       : "border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:bg-teal-50"
                   }`}
                   key={option.value}
-                  onClick={() => setFilter(option.value as RowFilter)}
+                  onClick={() => {
+                    setFilter(option.value as RowFilter);
+                    setPage(1);
+                  }}
                   type="button"
                 >
                   {option.label}
@@ -145,7 +227,10 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
             <input
               className="field-control has-leading-icon"
               id="validation-row-search"
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
               placeholder="Search row, MRN, test, or reason"
               type="search"
               value={search}
@@ -156,7 +241,8 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
           </div>
         </div>
         <p aria-live="polite" className="mt-3 text-xs text-slate-500">
-          Showing {filteredRows.length} of {report.totalRows} rows
+          Showing {paginatedRows.firstItem}–{paginatedRows.lastItem} of{" "}
+          {filteredRows.length} matching rows ({report.totalRows} total)
         </p>
       </div>
 
@@ -171,6 +257,7 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
             onClick={() => {
               setFilter("ALL");
               setSearch("");
+              setPage(1);
             }}
             type="button"
           >
@@ -198,7 +285,7 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredRows.map((row) => (
+                {paginatedRows.items.map((row) => (
                   <tr
                     className={
                       row.status === "ACCEPTED"
@@ -246,7 +333,7 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
           </div>
 
           <ul className="divide-y divide-slate-100 md:hidden">
-            {filteredRows.map((row) => (
+            {paginatedRows.items.map((row) => (
               <li
                 className={
                   row.status === "ACCEPTED"
@@ -299,6 +386,11 @@ export function ValidationReport({ report }: { report: LabUploadReport }) {
               </li>
             ))}
           </ul>
+          <ReportPagination
+            currentPage={paginatedRows.page}
+            onPageChange={setPage}
+            totalPages={paginatedRows.totalPages}
+          />
         </div>
       )}
     </section>

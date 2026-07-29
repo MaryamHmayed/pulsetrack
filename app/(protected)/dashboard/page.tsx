@@ -42,7 +42,6 @@ const riskBandDisplay = {
 const importStatusStyles = {
   COMPLETED: "bg-emerald-50 text-emerald-700",
   PARTIAL: "bg-amber-50 text-amber-800",
-  REJECTED: "bg-red-50 text-red-700",
 } as const;
 
 export default async function DashboardPage({
@@ -334,8 +333,8 @@ export default async function DashboardPage({
           <div>
             <h2 className="text-lg font-bold">Recent lab uploads</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Showing up to 10 most recent files in the selected upload-date
-              range.
+              Showing up to 10 recent files that imported at least one result
+              in the selected upload-date range.
             </p>
           </div>
           <form
@@ -395,13 +394,13 @@ export default async function DashboardPage({
           <div className="mt-6 rounded-xl border border-dashed border-slate-300 px-5 py-10 text-center">
             <p className="text-sm font-medium text-slate-700">
               {dateRange.from || dateRange.toExclusive
-                ? "No uploads match this date range"
-                : "No lab files uploaded yet"}
+                ? "No imports match this date range"
+                : "No lab results imported yet"}
             </p>
             <p className="mt-2 text-sm text-slate-500">
               {dateRange.from || dateRange.toExclusive
                 ? "Try a wider range or clear the filter."
-                : "Upload a CSV to populate recent clinic activity."}
+                : "Upload a CSV with at least one valid row to populate recent clinic activity."}
             </p>
             {!dateRange.from && !dateRange.toExclusive ? (
               <Link
@@ -438,11 +437,9 @@ export default async function DashboardPage({
                 <tbody className="divide-y divide-slate-100">
                   {metrics.recentUploads.map((upload) => {
                     const status =
-                      upload.acceptedCount === 0
-                        ? ("REJECTED" as const)
-                        : upload.rejectedCount > 0
-                          ? ("PARTIAL" as const)
-                          : ("COMPLETED" as const);
+                      upload.rejectedCount > 0
+                        ? ("PARTIAL" as const)
+                        : ("COMPLETED" as const);
 
                     return (
                       <tr className="transition hover:bg-[#f6fbfc]" key={upload.id}>
@@ -458,9 +455,7 @@ export default async function DashboardPage({
                           >
                             {status === "COMPLETED"
                               ? "Completed"
-                              : status === "PARTIAL"
-                                ? "Partial"
-                                : "Rejected"}
+                              : "Partial"}
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-4">

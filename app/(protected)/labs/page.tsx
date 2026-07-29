@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Icon } from "@/app/ui/icons";
+import { PaginationNav } from "@/app/ui/pagination-nav";
 import { listLabImports } from "@/lib/data/lab-imports";
 import { formatDateTimeUtc } from "@/lib/format/date";
+import { parsePage } from "@/lib/pagination";
 import { LabUploadForm } from "./lab-upload-form";
 
 const columns = [
@@ -18,11 +20,13 @@ const columns = [
 const importStatusStyles = {
   COMPLETED: "bg-emerald-50 text-emerald-700",
   PARTIAL: "bg-amber-50 text-amber-800",
-  REJECTED: "bg-red-50 text-red-700",
 } as const;
 
-export default async function LabsPage() {
-  const imports = await listLabImports();
+export default async function LabsPage({
+  searchParams,
+}: PageProps<"/labs">) {
+  const query = await searchParams;
+  const imports = await listLabImports(parsePage(query.page));
 
   return (
     <main className="app-page">
@@ -80,18 +84,18 @@ export default async function LabsPage() {
             Recent lab imports
           </h2>
           <p className="mt-2 text-sm text-slate-600">
-            The latest 25 uploads for your clinic, including partial and
-            rejected imports.
+            Files that added at least one lab result, including partial imports
+            with rejected rows.
           </p>
         </div>
 
-        {imports.length === 0 ? (
+        {imports.items.length === 0 ? (
           <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
             <p className="text-sm font-medium text-slate-700">
-              No lab files uploaded yet
+              No lab results imported yet
             </p>
             <p className="mt-2 text-sm text-slate-500">
-              Completed imports will appear here with their validation counts.
+              Files appear here after at least one row is accepted.
             </p>
           </div>
         ) : (
@@ -121,13 +125,11 @@ export default async function LabsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {imports.map((labImport) => {
+                  {imports.items.map((labImport) => {
                     const status =
-                      labImport.acceptedCount === 0
-                        ? ("REJECTED" as const)
-                        : labImport.rejectedCount > 0
-                          ? ("PARTIAL" as const)
-                          : ("COMPLETED" as const);
+                      labImport.rejectedCount > 0
+                        ? ("PARTIAL" as const)
+                        : ("COMPLETED" as const);
 
                     return (
                       <tr className="transition hover:bg-[#f6fbfc]" key={labImport.id}>
@@ -143,9 +145,7 @@ export default async function LabsPage() {
                           >
                             {status === "COMPLETED"
                               ? "Completed"
-                              : status === "PARTIAL"
-                                ? "Partial"
-                                : "Rejected"}
+                              : "Partial"}
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-4">
@@ -180,6 +180,12 @@ export default async function LabsPage() {
                 </tbody>
               </table>
             </div>
+            <PaginationNav
+              basePath="/labs"
+              currentPage={imports.page}
+              label="Lab import history pages"
+              totalPages={imports.totalPages}
+            />
           </div>
         )}
       </section>

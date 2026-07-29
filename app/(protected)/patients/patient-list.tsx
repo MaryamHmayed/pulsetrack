@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Icon } from "@/app/ui/icons";
+import {
+  DEFAULT_PAGE_SIZE,
+  getPaginationPages,
+  paginateItems,
+} from "@/lib/pagination";
 
 type PatientListItem = {
   id: string;
@@ -39,9 +44,81 @@ const fhirStatusLabels = {
   READ_ONLY: "FHIR history",
 } as const;
 
+function PatientPagination({
+  currentPage,
+  onPageChange,
+  totalPages,
+}: {
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  totalPages: number;
+}) {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  const pages = getPaginationPages(currentPage, totalPages);
+
+  return (
+    <nav
+      aria-label="Patient list pages"
+      className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <p className="text-xs font-medium text-slate-500">
+        Page {currentPage} of {totalPages}
+      </p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          className="button-secondary min-h-9 px-3 py-1.5 text-sm"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          type="button"
+        >
+          Previous
+        </button>
+        {pages.map((page, index) => {
+          const previousPage = pages[index - 1];
+
+          return (
+            <span className="contents" key={page}>
+              {previousPage && page - previousPage > 1 ? (
+                <span aria-hidden="true" className="px-1 text-slate-400">
+                  …
+                </span>
+              ) : null}
+              <button
+                aria-current={page === currentPage ? "page" : undefined}
+                aria-label={`Page ${page}`}
+                className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-2 text-sm font-semibold transition ${
+                  page === currentPage
+                    ? "border-teal-700 bg-teal-700 text-white"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:bg-teal-50"
+                }`}
+                onClick={() => onPageChange(page)}
+                type="button"
+              >
+                {page}
+              </button>
+            </span>
+          );
+        })}
+        <button
+          className="button-secondary min-h-9 px-3 py-1.5 text-sm"
+          disabled={currentPage === totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          type="button"
+        >
+          Next
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 export function PatientList({ patients }: { patients: PatientListItem[] }) {
   const [search, setSearch] = useState("");
   const [fhirFilter, setFhirFilter] = useState<FhirFilter>("ALL");
+  const [page, setPage] = useState(1);
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const filterCounts = useMemo(
     () =>
@@ -78,11 +155,16 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
       return matchesStatus && matchesSearch;
     });
   }, [fhirFilter, normalizedSearch, patients]);
+  const paginatedPatients = useMemo(
+    () => paginateItems(filteredPatients, page, DEFAULT_PAGE_SIZE),
+    [filteredPatients, page],
+  );
   const hasActiveFilters = Boolean(search) || fhirFilter !== "ALL";
 
   function clearFilters() {
     setSearch("");
     setFhirFilter("ALL");
+    setPage(1);
   }
 
   return (
@@ -101,7 +183,10 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
               className="field-control has-leading-icon w-full"
               id="patient-search"
               maxLength={100}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
               placeholder="Search by name, MRN, email, or phone"
               type="search"
               value={search}
@@ -137,7 +222,10 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
                     : "border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:bg-teal-50"
                 }`}
                 key={filter.value}
-                onClick={() => setFhirFilter(filter.value)}
+                onClick={() => {
+                  setFhirFilter(filter.value);
+                  setPage(1);
+                }}
                 type="button"
               >
                 {filter.label}
@@ -185,7 +273,8 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
         ) : (
           <>
             <p className="mb-3 text-sm text-slate-500">
-              {filteredPatients.length}{" "}
+              Showing {paginatedPatients.firstItem}–
+              {paginatedPatients.lastItem} of {filteredPatients.length}{" "}
               {filteredPatients.length === 1 ? "patient" : "patients"}
               {hasActiveFilters ? " matching your filters" : ""}
             </p>
@@ -205,7 +294,7 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredPatients.map((patient) => (
+                    {paginatedPatients.items.map((patient) => (
                       <tr className="transition hover:bg-teal-50/40" key={patient.id}>
                         <td className="px-5 py-4">
                           <p className="font-semibold text-slate-900">
@@ -251,7 +340,7 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
               </div>
 
               <ul className="divide-y divide-slate-100 md:hidden">
-                {filteredPatients.map((patient) => (
+                {paginatedPatients.items.map((patient) => (
                   <li className="p-4 sm:p-5" key={patient.id}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -302,6 +391,11 @@ export function PatientList({ patients }: { patients: PatientListItem[] }) {
                   </li>
                 ))}
               </ul>
+              <PatientPagination
+                currentPage={paginatedPatients.page}
+                onPageChange={setPage}
+                totalPages={paginatedPatients.totalPages}
+              />
             </div>
           </>
         )}
