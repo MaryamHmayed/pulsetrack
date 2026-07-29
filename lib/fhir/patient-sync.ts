@@ -62,7 +62,7 @@ export async function syncCreatedPatientToFhir(
     const response = await client.transport.create(
       "Patient",
       toFhirPatient(patient),
-      patientCreateCondition(patient.mrn),
+      patientCreateCondition(patient.mrn, client.candidateId),
     );
     const mapped = fromFhirPatient(response.resource);
     assertMatchingPatient(patient, mapped);

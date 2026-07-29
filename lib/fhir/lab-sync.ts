@@ -161,7 +161,7 @@ export async function syncLabImportToFhir(importId: string) {
           refLow: result.refLow?.toNumber() ?? null,
           refHigh: result.refHigh?.toNumber() ?? null,
         }),
-        observationCreateCondition(result.id),
+        observationCreateCondition(result.id, client.candidateId),
       );
       const mapped = fromFhirObservation(response.resource);
 

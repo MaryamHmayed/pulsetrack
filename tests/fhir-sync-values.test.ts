@@ -10,17 +10,17 @@ import {
   safeFhirSyncError,
 } from "@/lib/fhir/sync-values";
 
-test("builds the conditional Patient create expression from the MRN", () => {
+test("scopes conditional Patient creates by MRN and candidate ownership", () => {
   assert.equal(
-    patientCreateCondition("MRN-1001"),
-    "identifier=https://challenge.capadev.dev/mrn|MRN-1001",
+    patientCreateCondition("MRN-1001", "cand-pulsetrack-1"),
+    "identifier=https://challenge.capadev.dev/mrn|MRN-1001&_tag=https://challenge.capadev.dev/tags|cand-pulsetrack-1",
   );
 });
 
-test("builds the conditional Observation create expression from the local id", () => {
+test("scopes conditional Observation creates by id and candidate ownership", () => {
   assert.equal(
-    observationCreateCondition("lab-result-1"),
-    "identifier=https://challenge.capadev.dev/lab-result|lab-result-1",
+    observationCreateCondition("lab-result-1", "cand-pulsetrack-1"),
+    "identifier=https://challenge.capadev.dev/lab-result|lab-result-1&_tag=https://challenge.capadev.dev/tags|cand-pulsetrack-1",
   );
 });
 

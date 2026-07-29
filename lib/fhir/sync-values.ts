@@ -12,12 +12,28 @@ export const FHIR_CANDIDATE_TAG_SYSTEM =
 
 const MAX_SYNC_ERROR_LENGTH = 500;
 
-export function patientCreateCondition(mrn: string) {
-  return `identifier=${FHIR_MRN_SYSTEM}|${mrn}`;
+function candidateOwnershipCondition(candidateId: string) {
+  return `_tag=${FHIR_CANDIDATE_TAG_SYSTEM}|${candidateId}`;
 }
 
-export function observationCreateCondition(labResultId: string) {
-  return `identifier=${FHIR_LAB_IDENTIFIER_SYSTEM}|${labResultId}`;
+export function patientCreateCondition(
+  mrn: string,
+  candidateId: string,
+) {
+  return [
+    `identifier=${FHIR_MRN_SYSTEM}|${mrn}`,
+    candidateOwnershipCondition(candidateId),
+  ].join("&");
+}
+
+export function observationCreateCondition(
+  labResultId: string,
+  candidateId: string,
+) {
+  return [
+    `identifier=${FHIR_LAB_IDENTIFIER_SYSTEM}|${labResultId}`,
+    candidateOwnershipCondition(candidateId),
+  ].join("&");
 }
 
 export function isCandidateOwnedResource(

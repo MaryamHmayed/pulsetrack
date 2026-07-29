@@ -26,7 +26,7 @@ All accounts and clinical records in this challenge use fabricated data.
   sessions; patients do not have accounts.
 - Patient CRUD for name, date of birth, sex, MRN, email, and phone, with unique
   MRNs, server-side validation, search, FHIR-status filters, and pagination.
-- DSMA-8 delivery through Resend with a random tokenized link, exact supplied
+- DSMA-8 delivery through Brevo with a random tokenized link, exact supplied
   questions and scoring, seven-day expiry, single-use submission, and
   clinician-visible `SENT`, `COMPLETED`, and `EXPIRED` history.
 - Fixed CSV template download, row-level validation for missing fields, MRNs,
@@ -66,7 +66,7 @@ All accounts and clinical records in this challenge use fabricated data.
 
 - Next.js 16 App Router, React 19, TypeScript, and Tailwind CSS 4
 - PostgreSQL with Prisma ORM 7 and the PostgreSQL driver adapter
-- Resend email API
+- Brevo transactional email API
 - HAPI FHIR R4
 - Google Gemini 3.1 Flash-Lite
 - Vercel
@@ -77,7 +77,7 @@ All accounts and clinical records in this challenge use fabricated data.
 
 - Node.js 22+
 - PostgreSQL
-- Resend API key
+- Brevo API key and verified sender email
 - Challenge FHIR base URL, candidate ID, and API key
 - Google AI Studio API key for Tier 3
 
@@ -96,8 +96,9 @@ Copy `.env.example` to `.env` and provide:
 ```dotenv
 DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=verify-full"
 APP_URL="http://localhost:3000"
-RESEND_API_KEY="re_your_key"
-EMAIL_FROM="PulseTrack <onboarding@resend.dev>"
+BREVO_API_KEY="xkeysib-your-key"
+BREVO_SENDER_EMAIL="pulsetrack.demo@gmail.com"
+BREVO_SENDER_NAME="PulseTrack"
 
 FHIR_BASE_URL="https://fhir-challenge.vihagent.net/fhir"
 FHIR_CANDIDATE_ID="cand-your-id"
@@ -107,9 +108,8 @@ GEMINI_API_KEY="your-google-ai-studio-key"
 GEMINI_MODEL="gemini-3.1-flash-lite"
 ```
 
-`onboarding@resend.dev` can send only to the inbox associated with the Resend
-account. Use a verified sender domain for other recipients. When testing, use
-an inbox you own with a fabricated patient identity.
+`BREVO_SENDER_EMAIL` must exactly match a sender verified in Brevo. Keep the
+API key server-only and use only fabricated patient identities and test inboxes.
 
 ### 3. Prepare and run
 
@@ -166,7 +166,7 @@ flowchart LR
     end
 
     DB[(PostgreSQL)]
-    R[Resend]
+    R[Brevo]
     F[HAPI FHIR R4]
     G[Google Gemini]
 

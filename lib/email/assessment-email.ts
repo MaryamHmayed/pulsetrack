@@ -1,6 +1,6 @@
 import "server-only";
 
-import { describeResendError } from "@/lib/email/resend-error";
+import { describeBrevoError } from "@/lib/email/brevo-error";
 
 type AssessmentEmailInput = {
   assessmentId: string;
@@ -66,12 +66,13 @@ export function getApplicationUrl() {
 export async function sendAssessmentEmail(
   input: AssessmentEmailInput,
 ): Promise<AssessmentEmailResult> {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  const from = process.env.EMAIL_FROM?.trim();
+  const apiKey = process.env.BREVO_API_KEY?.trim();
+  const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim();
+  const senderName = process.env.BREVO_SENDER_NAME?.trim() || "PulseTrack";
 
-  if (!apiKey || !from) {
+  if (!apiKey || !senderEmail) {
     throw new EmailDeliveryError(
-      "Email delivery is not configured. Set RESEND_API_KEY and EMAIL_FROM.",
+      "Email delivery is not configured. Set BREVO_API_KEY and BREVO_SENDER_EMAIL.",
     );
   }
 
@@ -80,19 +81,27 @@ export async function sendAssessmentEmail(
   let response: Response;
 
   try {
-    response = await fetch("https://api.resend.com/emails", {
+    response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+        "api-key": apiKey,
         "Content-Type": "application/json",
-        "Idempotency-Key": `assessment/${input.assessmentId}`,
         "User-Agent": "PulseTrack/1.0",
       },
       body: JSON.stringify({
-        from,
-        to: [input.recipient],
+        sender: {
+          email: senderEmail,
+          name: senderName,
+        },
+        to: [
+          {
+            email: input.recipient,
+            name: input.patientName,
+          },
+        ],
         subject: "Your diabetes self-management assessment",
-        text: [
+        textContent: [
           `Hello ${input.patientName},`,
           "",
           "Your care team has asked you to complete a short diabetes self-management assessment.",
@@ -100,7 +109,7 @@ export async function sendAssessmentEmail(
           "",
           "This link can be used once. If you did not expect this message, contact your clinic.",
         ].join("\n"),
-        html: `
+        htmlContent: `
           <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;max-width:600px">
             <p>Hello ${safeName},</p>
             <p>Your care team has asked you to complete a short diabetes self-management assessment.</p>
@@ -113,8 +122,13 @@ export async function sendAssessmentEmail(
             <p style="color:#64748b;font-size:14px">If you did not expect this message, contact your clinic.</p>
           </div>
         `,
+        headers: {
+          "Idempotency-Key": `assessment-${input.assessmentId}`,
+        },
+        tags: ["assessment"],
       }),
       signal: AbortSignal.timeout(10_000),
+      cache: "no-store",
     });
   } catch {
     throw new EmailDeliveryError(
@@ -132,19 +146,19 @@ export async function sendAssessmentEmail(
     }
 
     throw new EmailDeliveryError(
-      describeResendError(response.status, errorPayload),
+      describeBrevoError(response.status, errorPayload),
     );
   }
 
-  const payload = (await response.json()) as { id?: unknown };
+  const payload = (await response.json()) as { messageId?: unknown };
 
-  if (typeof payload.id !== "string" || !payload.id) {
+  if (typeof payload.messageId !== "string" || !payload.messageId) {
     throw new EmailDeliveryError(
       "The email provider returned an invalid response.",
     );
   }
 
   return {
-    providerId: payload.id,
+    providerId: payload.messageId,
   };
 }
